@@ -1,0 +1,231 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ── Tokens shadcn/ui (base) ─────────────────────────────────────────────── */
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  /* McCare red como primary en modo público */
+  --primary: oklch(0.4 0.22 25.33);          /* #DB0007 */
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.4 0.22 25.33);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+@theme inline {
+  --font-sans: 'Inter', 'Geist', system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  /* McCare brand colors */
+  --color-mccare-red: #DB0007;
+  --color-mccare-yellow: #FFBC0D;
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground; }
+}
+
+
+/* ── Design System McCare v2 ─────────────────────────────────────────────── */
+
+:root {
+  /* Color semántico */
+  --c-urgente:        #DC2626;
+  --c-urgente-light:  #FEE2E2;
+  --c-urgente-glow:   rgba(220, 38, 38, 0.35);
+  --c-atencion:       #D97706;
+  --c-atencion-light: #FEF3C7;
+  --c-atencion-glow:  rgba(217, 119, 6, 0.3);
+  --c-saludable:      #059669;
+  --c-saludable-light:#D1FAE5;
+  --c-primario:       #1e1b4b;
+  --c-acento:         #6366f1;
+  --c-acento-glow:    rgba(99, 102, 241, 0.3);
+
+  /* Superficies */
+  --s-oscuro:   #0f172a;
+  --s-medio:    #1e293b;
+  --s-claro:    #f8fafc;
+  --s-borde:    #e2e8f0;
+
+  /* Tipografía */
+  --font-sans: var(--font-inter, 'Inter', system-ui, sans-serif);
+
+  /* Tokens de componente */
+  --card-pad:    1rem;
+  --card-radius: 0.75rem;
+  --transition:  all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Animaciones Globales ─────────────────────────────────────────────────── */
+
+@keyframes pulse-urgente {
+  0%, 100% { box-shadow: 0 0 0 0 var(--c-urgente-glow); }
+  50%       { box-shadow: 0 0 0 10px rgba(220,38,38,0); }
+}
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+@keyframes bar-fill {
+  from { width: 0%; }
+  to   { width: var(--bar-target, 100%); }
+}
+@keyframes slide-in-bottom {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+@keyframes slide-in-top {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0);     }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes glow-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
+}
+@keyframes ring-progress {
+  from { stroke-dashoffset: var(--ring-start, 283); }
+  to   { stroke-dashoffset: var(--ring-end, 0);     }
+}
+@keyframes celebrate {
+  0%   { transform: scale(0.6) rotate(-10deg); opacity: 0; }
+  60%  { transform: scale(1.15) rotate(3deg);  opacity: 1; }
+  100% { transform: scale(1) rotate(0deg);     opacity: 1; }
+}
+
+/* ── Clases de Animación Semánticas ──────────────────────────────────────── */
+
+.anim-pulse-urgente { animation: pulse-urgente 2s infinite; }
+.anim-bar-fill      { animation: bar-fill 700ms ease-out forwards; }
+.anim-slide-bottom  { animation: slide-in-bottom 350ms ease-out both; }
+.anim-slide-top     { animation: slide-in-top 300ms ease-out both; }
+.anim-fade-in       { animation: fade-in 400ms ease-out both; }
+.anim-glow-pulse    { animation: glow-pulse 2.5s ease-in-out infinite; }
+.anim-count-up      { animation: count-up 400ms ease-out both; }
+.anim-celebrate     { animation: celebrate 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.anim-ring          { animation: ring-progress 1000ms ease-out forwards; }
+
+/* ── Utilidades Semánticas ────────────────────────────────────────────────── */
+
+/* Card compacta estándar */
+.mccard {
+  padding: var(--card-pad);
+  border-radius: var(--card-radius);
+  transition: var(--transition);
+  border: 1px solid var(--s-borde);
+  background: white;
+}
+.mccard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+
+/* Card urgente con glow */
+.mccard-urgente {
+  border-left: 4px solid var(--c-urgente);
+  background: #FFF5F5;
+}
+.mccard-urgente:hover {
+  box-shadow: 0 4px 20px var(--c-urgente-glow);
+}
+
+/* Card atención */
+.mccard-atencion {
+  border-left: 4px solid var(--c-atencion);
+  background: #FFFBF0;
+}
+
+/* Barra de progreso base */
+.progress-bar-track {
+  height: 6px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 700ms ease-out;
+}
+
+/* Semáforo dot */
+.dot-urgente  { background: var(--c-urgente);   }
+.dot-atencion { background: var(--c-atencion);  }
+.dot-saludable{ background: var(--c-saludable); }
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+
+body {
+  font-family: var(--font-sans);
+  background: var(--s-claro);
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+}
+
+* { box-sizing: border-box; }
+
+/* Stagger delays para animaciones en lista */
+.stagger > *:nth-child(1) { animation-delay:   0ms; }
+.stagger > *:nth-child(2) { animation-delay:  60ms; }
+.stagger > *:nth-child(3) { animation-delay: 120ms; }
+.stagger > *:nth-child(4) { animation-delay: 180ms; }
+.stagger > *:nth-child(5) { animation-delay: 240ms; }
+.stagger > *:nth-child(6) { animation-delay: 300ms; }
+.stagger > *:nth-child(7) { animation-delay: 360ms; }
+.stagger > *:nth-child(8) { animation-delay: 420ms; }

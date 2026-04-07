@@ -1,0 +1,163 @@
+from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional, Literal, List
+from datetime import datetime
+
+class InsumoCreate(BaseModel):
+    """Esquema para cuando el cliente envía un nuevo insumo a crear (el ID se generará en backend)"""
+    nombre: str = Field(..., description="Nombre del insumo (ej: Pañales Talla G)")
+    categoria: str = Field(..., description="Categoría para filtros (alimentos, higiene, etc)")
+    stock_actual: int = Field(..., ge=0, description="Unidades que se encuentran en el almacén hoy")
+    consumo_diario: float = Field(..., ge=0, description="Consumo promedio por día estimado")
+    nivel_critico: int = Field(..., ge=0, description="Límite mínimo antes de declarar alerta")
+    capacidad_maxima: int = Field(100, ge=0, description="Nivel máximo de bodega")
+    sede: str = Field("cdmx", description="Sede operativa")
+    costo_unitario: float = Field(10.0, ge=0, description="Costo por unidad de este insumo")
+
+class Insumo(InsumoCreate):
+    """Esquema para respuestas y lectura, incluye su identificador único"""
+    id: str = Field(..., description="Identificador único del insumo generado por el servidor")
+    model_config = ConfigDict(from_attributes=True)
+
+class MisionCritica(BaseModel):
+    """Esquema para las misiones generadas automáticamente si las reglas de urgencia se cumplen"""
+    id: str = Field(..., description="Identificador único de la misión")
+    insumo_id: str = Field(..., description="Referencia al insumo que necesita reabastecerse")
+    nombre_insumo: str = Field(..., description="Nombre amigable para la interfaz de donadores")
+    nivel_urgencia: float = Field(..., description="Ratio que indica qué tan crítico es (basado en consumo y stock)")
+    mensaje: str = Field(..., description="Mensaje humano para los donadores y dashboard")
+
+class MovimientoCreate(BaseModel):
+    """Esquema para registrar un nuevo movimiento de inventario"""
+    insumo_id: str = Field(..., description="ID del insumo afectado")
+    tipo_movimiento: Literal['entrada', 'salida', 'ajuste'] = Field(..., description="Solo permite entrada, salida o ajuste")
+    cantidad: int = Field(..., gt=0, description="Debe ser mayor a 0 estrictamente")
+    observacion: Optional[str] = Field(None, description="Motivo del movimiento o ajuste")
+    origen: Literal['interno', 'publico', 'corporativo'] = Field(
+        'interno', description="Origen de la acción para trazabilidad"
+    )
+
+class AdminResumen(BaseModel):
+    """KPIs ejecutivos calculados en el backend para el portal administrativo."""
+    total_insumos: int
+    insumos_criticos: int
+    insumos_atencion: int
+    insumos_estables: int
+    insumos_sin_datos: int
+    misiones_activas: int
+    cobertura_promedio_dias: float
+    movimientos_recientes: int
+    porcentaje_catalogo_sano: float
+    estado_general: Literal['optimo', 'alerta', 'critico']
+    mensaje_estado: str
+
+class ImpactoResumen(BaseModel):
+    """Resumen calculado en backend para el Hero del portal público."""
+    urgencias_criticas: int
+    prevenciones_activas: int
+    total_historias: int
+    mensaje_principal: str
+    submensaje: str
+    mensaje_hero_emocional: str  # "Hoy puedes cambiar la noche de 65 niños"
+    familias_en_riesgo: int      # Número animado en el hero
+    tagline: str                 # "Donaciones con impacto real"
+
+
+# ── Schemas Corporativos ────────────────────────────────────────────────────
+
+class MisionFinanciable(BaseModel):
+    """
+    Misión estructurada para decision-making corporativo.
+    Incluye impacto estimado, justificación y nivel de urgencia.
+    """
+    id: str                          # ID único de la misión/historia
+    insumo_id: str
+    nombre_insumo: str
+    categoria: str
+    tipo: Literal["rescate_critico", "prevencion_inteligente"]
+    severidad: Literal["alta", "media"]
+    titulo: str
+    descripcion_ejecutiva: str       # Tono B2B, no emocional
+    impacto_familias: int            # Calculo centralizado de metricas.py
+    cobertura_actual_dias: float     # Días de stock restante
+    dias_para_critico: float
+    inversion_estimada_label: str    # Ej: "Reabastecimiento ~14 días"
+    urgencia_relativa: float         # Para ordenar
+    cta_label: str
+    origen: str                      # "operacion_actual" | "forecast_predictivo"
+    confianza: str
+
+class CorporativoResumen(BaseModel):
+    """KPIs ejecutivos para el portal corporativo."""
+    periodo_dias: int
+    misiones_financiables: int
+    misiones_criticas: int
+    misiones_preventivas: int
+    familias_potenciales: int        # Total familias beneficiables si se patrocinan todas
+    unidades_entrada_periodo: int    # Unidades recibidas como donación/entrada en el período
+    cobertura_promedio_dias: float
+    estado_general: Literal["optimo", "alerta", "critico"]
+    frase_ejecutiva: str             # Una frase clara para el resumen C-level
+
+class ItemHistoricoImpacto(BaseModel):
+    """Un movimiento de entrada presentado como evento de impacto trazable."""
+    fecha: datetime
+    insumo_nombre: str
+    categoria: str
+    cantidad: int
+    stock_resultante: int
+    origen_movimiento: str           # 'interno' | 'publico' | 'corporativo'
+    observacion: Optional[str]
+
+class ReporteCorporativo(BaseModel):
+    """Reporte exportable ESG/RSE — respuesta del endpoint de export."""
+    generado_en: datetime
+    periodo_dias: int
+    resumen: CorporativoResumen
+    misiones_activas: List[MisionFinanciable]
+    historial_entradas: List[ItemHistoricoImpacto]
+    recomendaciones_predictivas: List[MisionFinanciable]
+
+
+class Movimiento(MovimientoCreate):
+    """Esquema de respuesta histórico de auditoría"""
+    id: str
+    stock_resultante: int
+    fecha: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class ForecastResult(BaseModel):
+    """Proyección de días restantes (CareForecast V2)"""
+    id: str
+    nombre: str
+    categoria: str
+    stock_actual: int
+    nivel_critico: int
+    consumo_base: float
+    consumo_estimado: float
+    metodo_usado: str
+    dias_para_nivel_critico: float
+    dias_para_agotarse: float
+    estado_forecast: Literal["estable", "atencion", "critico", "sin_datos"]
+    confianza_basica: Literal["alta", "media", "baja"]
+    mensaje_forecast: str
+
+class ImpactStory(BaseModel):
+    """Historia Narrativa Oficial (B2C) dictaminada por la capa de Negocio."""
+    id: str
+    insumo_id: str
+    nombre_insumo: str
+    categoria: str
+    casa: str
+    tipo_historia: Literal["rescate_critico", "prevencion_inteligente"]
+    severidad: Literal["alta", "media"]
+    titulo: str
+    descripcion: str
+    impacto_resumido: str
+    tiempo_texto: str
+    dias_restantes: float
+    accion_label: str
+    accion_tipo: Literal["transaccional_fuerte", "transaccional_suave"]
+    origen: Literal["operacion_actual", "forecast_predictivo"]
+    confianza: Literal["alta", "media", "baja"]
+    nivel_urgencia_relativa: float
+    consumo_estimado: float  # Expuesto para que el frontend calcule reabastecimiento sin llamada extra
