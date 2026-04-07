@@ -9,8 +9,9 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 import os
 
-# URL configurable vía variable de entorno para facilitar migración futura
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./mccare.db")
+# URL apuntando a Supabase 
+# IMPORTANTE: Eliminados los corchetes [] que encerraban la contraseña para que funcione
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres.sezztfnibhkujwxrapcp:Base_Datos123456@aws-1-us-west-2.pooler.supabase.com:5432/postgres")
 
 # check_same_thread=False es necesario solo en SQLite con FastAPI (multi-thread)
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}

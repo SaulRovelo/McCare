@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, Literal, List
 from datetime import datetime
+from uuid import UUID
 
 class InsumoCreate(BaseModel):
     """Esquema para cuando el cliente envía un nuevo insumo a crear (el ID se generará en backend)"""
@@ -15,20 +16,20 @@ class InsumoCreate(BaseModel):
 
 class Insumo(InsumoCreate):
     """Esquema para respuestas y lectura, incluye su identificador único"""
-    id: str = Field(..., description="Identificador único del insumo generado por el servidor")
+    id: UUID | str = Field(..., description="Identificador único del insumo generado por el servidor")
     model_config = ConfigDict(from_attributes=True)
 
 class MisionCritica(BaseModel):
     """Esquema para las misiones generadas automáticamente si las reglas de urgencia se cumplen"""
-    id: str = Field(..., description="Identificador único de la misión")
-    insumo_id: str = Field(..., description="Referencia al insumo que necesita reabastecerse")
+    id: UUID | str = Field(..., description="Identificador único de la misión")
+    insumo_id: UUID | str = Field(..., description="Referencia al insumo que necesita reabastecerse")
     nombre_insumo: str = Field(..., description="Nombre amigable para la interfaz de donadores")
     nivel_urgencia: float = Field(..., description="Ratio que indica qué tan crítico es (basado en consumo y stock)")
     mensaje: str = Field(..., description="Mensaje humano para los donadores y dashboard")
 
 class MovimientoCreate(BaseModel):
     """Esquema para registrar un nuevo movimiento de inventario"""
-    insumo_id: str = Field(..., description="ID del insumo afectado")
+    insumo_id: UUID | str = Field(..., description="ID del insumo afectado")
     tipo_movimiento: Literal['entrada', 'salida', 'ajuste'] = Field(..., description="Solo permite entrada, salida o ajuste")
     cantidad: int = Field(..., gt=0, description="Debe ser mayor a 0 estrictamente")
     observacion: Optional[str] = Field(None, description="Motivo del movimiento o ajuste")
@@ -69,8 +70,8 @@ class MisionFinanciable(BaseModel):
     Misión estructurada para decision-making corporativo.
     Incluye impacto estimado, justificación y nivel de urgencia.
     """
-    id: str                          # ID único de la misión/historia
-    insumo_id: str
+    id: UUID | str                          # ID único de la misión/historia
+    insumo_id: UUID | str
     nombre_insumo: str
     categoria: str
     tipo: Literal["rescate_critico", "prevencion_inteligente"]
@@ -120,14 +121,14 @@ class ReporteCorporativo(BaseModel):
 
 class Movimiento(MovimientoCreate):
     """Esquema de respuesta histórico de auditoría"""
-    id: str
+    id: UUID | str
     stock_resultante: int
     fecha: datetime
     model_config = ConfigDict(from_attributes=True)
 
 class ForecastResult(BaseModel):
     """Proyección de días restantes (CareForecast V2)"""
-    id: str
+    id: UUID | str
     nombre: str
     categoria: str
     stock_actual: int
@@ -143,8 +144,8 @@ class ForecastResult(BaseModel):
 
 class ImpactStory(BaseModel):
     """Historia Narrativa Oficial (B2C) dictaminada por la capa de Negocio."""
-    id: str
-    insumo_id: str
+    id: UUID | str
+    insumo_id: UUID | str
     nombre_insumo: str
     categoria: str
     casa: str

@@ -41,3 +41,4 @@ class MovimientoSQL(Base):
     observacion = Column(String(200), nullable=True)
 
     insumo = relationship("InsumoSQL", back_populates="movimientos")
+    
