@@ -6,7 +6,7 @@ Importa conexión y modelos desde database/ (capa de datos).
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.api.router import api_router
+from api.router import api_router
 from database.connection import engine, Base
 from database.models import InsumoSQL, MovimientoSQL  # noqa: F401 — needed for create_all
 
