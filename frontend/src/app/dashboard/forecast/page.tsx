@@ -37,17 +37,15 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 // IMPORTANTE: Asegúrate de que esta ruta apunte correctamente a tu API real
 import { getForecast } from "@/services/api";
-import { solicitarAbastecimientoUrgente } from "@/services/api";
 
 /* ═══════════════════════════════════════════════════
    CONFIGURACIÓN VISUAL
    ═══════════════════════════════════════════════════ */
 
 const statusConfig: Record<string, any> = {
-  critico:   { label: "Crítico",    color: "text-red-700",     bg: "bg-red-50",     border: "border-red-200",     badgeBg: "bg-red-600"     },
-  atencion:  { label: "En Atención",color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-200",   badgeBg: "bg-amber-500"   },
-  estable:   { label: "Estable",    color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200", badgeBg: "bg-emerald-600" },
-  sin_datos: { label: "Sin datos",  color: "text-slate-600",   bg: "bg-slate-50",   border: "border-slate-200",   badgeBg: "bg-slate-500"   },
+  critico: { label: "Crítico", color: "text-red-700", bg: "bg-red-50", border: "border-red-200", badgeBg: "bg-red-600" },
+  atencion: { label: "En Atención", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", badgeBg: "bg-amber-500" },
+  estable: { label: "Estable", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200", badgeBg: "bg-emerald-600" },
 };
 
 const impactConfig: Record<string, string> = {
@@ -75,73 +73,30 @@ export default function CareforecastPage() {
   const [supplies, setSupplies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  const [urgentLoading, setUrgentLoading] = useState<Record<string, boolean>>({});
-
-  const handleUrgente = async (supply: any) => {
-    setUrgentLoading(prev => ({ ...prev, [supply.id]: true }));
-    try {
-      await solicitarAbastecimientoUrgente(supply.id);
-      // Refrescar datos para reflejar el nuevo stock
-      await fetchForecastData();
-    } catch (err) {
-      console.error("Error en abastecimiento urgente:", err);
-    } finally {
-      setUrgentLoading(prev => ({ ...prev, [supply.id]: false }));
-    }
-  };
-
-  // ── Formatea días (float) en string legible para el usuario ──
-  function formatDias(dias: number): string {
-    if (dias <= 0)    return "Umbral superado";
-    if (dias < 0.04)  return "< 1 hora";
-    if (dias < 1)     return `${Math.round(dias * 24)} horas`;
-    if (dias < 2)     return `${Math.round(dias * 24)} horas`;
-    if (dias === 1)   return "1 día";
-    return `${Math.round(dias)} días`;
-  }
-
-  // ── Calcula fecha estimada de agotamiento desde hoy + días ──
-  function fechaAgotamiento(dias: number): string {
-    if (dias <= 0) return "Agotado";
-    const d = new Date();
-    d.setDate(d.getDate() + Math.round(dias));
-    return d.toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" });
-  }
 
   const fetchForecastData = async () => {
     setIsRefreshing(true);
     try {
       const data = await getForecast(50);
 
-      // ── Mapeamos los campos reales del backend ForecastResult al diseño ──
+      // Adaptamos los datos de tu API al formato que necesita el diseño de Figma
       const mappedData = data.map((item: any) => ({
-        id:                item.id                    ?? Math.random().toString(),
-        name:              item.nombre                ?? "Insumo desconocido",
-        category:          item.categoria             ?? "General",
-        icon:              getIconForCategory(item.nombre ?? ""),
-        stock:             item.stock_actual           ?? 0,
-        nivelCritico:      item.nivel_critico          ?? 0,
-        unit:              "uds",
-        consumptionPerDay: parseFloat((item.consumo_estimado ?? 0).toFixed(1)),
-        timeLeft:          formatDias(item.dias_para_agotarse ?? 0),
-        timeLeftDias:      item.dias_para_agotarse     ?? 0,
-        timeLeftMinutes:   (item.dias_para_agotarse ?? 0) * 24 * 60,
-        diasHastaCritico:  item.dias_para_nivel_critico ?? 0,
-        depletionDate:     fechaAgotamiento(item.dias_para_agotarse ?? 0),
-        status:            item.estado_forecast        ?? "sin_datos",
-        confianza:         item.confianza_basica       ?? "baja",
-        mensajeIA:         item.mensaje_forecast       ?? "",
-        metodo:            item.metodo_usado           ?? "River ML",
-        impactLevel:       (item.dias_para_agotarse ?? 99) < 2
-                             ? "Muy Alto"
-                             : (item.dias_para_agotarse ?? 99) < 5
-                             ? "Alto"
-                             : "Medio",
+        id: item.id || Math.random().toString(),
+        name: item.nombre || item.insumo_nombre || "Insumo Desconocido",
+        category: item.categoria || "General",
+        icon: getIconForCategory(item.nombre || ""),
+        stock: item.stock_actual || 0,
+        unit: item.unidad_medida || "uds",
+        consumptionPerDay: item.consumo_diario_estimado || 0,
+        // Adaptamos los estados de tu API ('critico', 'atencion') a la UI
+        timeLeft: item.tiempo_restante_str || `${item.dias_para_agotarse}d`,
+        timeLeftMinutes: item.dias_para_agotarse * 24 * 60, // Para poder ordenar
+        depletionDate: item.fecha_agotamiento_estimada || "Próximamente",
+        status: item.estado_forecast || "estable",
+        impactLevel: item.dias_para_agotarse < 2 ? "Muy Alto" : (item.dias_para_agotarse < 5 ? "Alto" : "Medio")
       }));
 
       setSupplies(mappedData);
-      setLastUpdate(new Date());
     } catch (error) {
       console.error("Error fetching forecast:", error);
     } finally {
@@ -189,11 +144,6 @@ export default function CareforecastPage() {
         >
           <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
           {isRefreshing ? "Actualizando..." : "Actualizar"}
-          {lastUpdate && (
-            <span className="text-slate-400 font-normal" style={{ fontSize: "0.6875rem" }}>
-              · {lastUpdate.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
-            </span>
-          )}
         </Button>
       </div>
 
@@ -336,13 +286,9 @@ export default function CareforecastPage() {
                       Fecha de agotamiento: {supply.depletionDate}
                     </p>
 
-                    <Button
-                      className="w-full mt-4 bg-[#DA291C] hover:bg-[#b8221a] text-white gap-2 cursor-pointer h-10 shadow-sm font-medium disabled:opacity-60"
-                      onClick={() => handleUrgente(supply)}
-                      disabled={urgentLoading[supply.id]}
-                    >
-                      <Zap className={`w-4 h-4 ${urgentLoading[supply.id] ? 'animate-spin' : ''}`} />
-                      {urgentLoading[supply.id] ? 'Procesando...' : 'Solicitar Abastecimiento Urgente'}
+                    <Button className="w-full mt-4 bg-[#DA291C] hover:bg-[#b8221a] text-white gap-2 cursor-pointer h-10 shadow-sm font-medium">
+                      <Zap className="w-4 h-4" />
+                      Solicitar Abastecimiento Urgente
                     </Button>
                   </CardContent>
                 </Card>

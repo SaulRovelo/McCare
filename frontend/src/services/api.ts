@@ -123,35 +123,3 @@ export const simularEscenarioCritico = async () =>
     consumo_diario: 3,
     nivel_critico: 10,
   });
-
-// ── Abastecimiento Urgente ────────────────────────────────────────────────────
-
-/**
- * Acción del botón "Solicitar Abastecimiento Urgente" en CareForecast.
- * Registra una entrada urgente, crea una notificación interna y
- * dispara correo en background (si está activo en configuración).
- */
-export const solicitarAbastecimientoUrgente = (insumoId: string) =>
-  fetchJSON(`/api/misiones/urgente?insumo_id=${insumoId}`, { method: 'POST' });
-
-// ── Notificaciones ────────────────────────────────────────────────────────────
-
-export const getNotificaciones = (soloNoLeidas = false, limit = 20) =>
-  fetchJSON(`/api/notificaciones?solo_no_leidas=${soloNoLeidas}&limit=${limit}`);
-
-/** Badge del sidebar: número de notificaciones no leídas. */
-export const getNotificacionesCount = (): Promise<{ no_leidas: number }> =>
-  fetchJSON('/api/notificaciones/count');
-
-export const marcarNotificacionLeida = (id: string) =>
-  fetchJSON(`/api/notificaciones/${id}/leer`, { method: 'PATCH' });
-
-export const marcarTodasLeidas = () =>
-  fetchJSON('/api/notificaciones/leer-todas', { method: 'POST' });
-
-// ── Configuración ─────────────────────────────────────────────────────────────
-
-export const getConfiguracion = () => fetchJSON('/api/configuracion');
-
-export const actualizarConfiguracion = (clave: string, valor: string) =>
-  fetchJSON(`/api/configuracion/${clave}?valor=${encodeURIComponent(valor)}`, { method: 'PATCH' });
