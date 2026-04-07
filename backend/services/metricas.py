@@ -108,22 +108,15 @@ def obtener_resumen_admin(db: Session) -> AdminResumen:
 def obtener_resumen_impacto(db: Session, historias: List[ImpactStory]) -> ImpactoResumen:
     """
     Calcula el resumen para el Hero del portal público.
-    Recibe la lista de historias ya compilada (evita doble cómputo).
-    Incluye campos emocionales para el WOW moment del hero.
+    familias_en_riesgo: valor configurable desde ConfiguracionSQL, sin redeploy.
     """
     criticas    = sum(1 for h in historias if h.tipo_historia == "rescate_critico")
     preventivas = sum(1 for h in historias if h.tipo_historia == "prevencion_inteligente")
     total       = len(historias)
 
-    # Familias en riesgo = suma de impacto estimado de historias críticas
-    familias = sum(
-        calcular_familias_beneficiadas(h.consumo_estimado, dias=7)
-        for h in historias if h.tipo_historia == "rescate_critico"
-    )
-    familias_total = max(familias, sum(
-        calcular_familias_beneficiadas(h.consumo_estimado, dias=7)
-        for h in historias
-    ))
+    # Fuente de verdad: BD configurable (panel admin puede actualizar este número)
+    from backend.services.notificaciones import get_familias_actuales
+    familias_total = get_familias_actuales(db)
 
     if criticas > 0:
         principal = f"{criticas} {'urgencia crítica' if criticas == 1 else 'urgencias críticas'} activa{'s' if criticas > 1 else ''}"
@@ -137,7 +130,6 @@ def obtener_resumen_impacto(db: Session, historias: List[ImpactStory]) -> Impact
         principal = "Todo cubierto por ahora"
         sub = "El inventario del albergue está en niveles seguros. Puedes apoyar para el futuro."
         hero = "Casa CDMX está protegida hoy. ¡Gracias a donantes como tú!"
-        familias_total = 0
 
     return ImpactoResumen(
         urgencias_criticas=criticas,

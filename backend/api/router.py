@@ -1,10 +1,4 @@
-"""
-backend/api/router.py — Endpoints HTTP de McCare
-
-Responsabilidad: recibir peticiones HTTP, delegar a servicios y capa analítica,
-y devolver respuestas JSON tipadas. No contiene lógica de negocio.
-"""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -20,6 +14,9 @@ from backend.models.domain import (
     MisionFinanciable,
     CorporativoResumen,
     ReporteCorporativo,
+    NotificacionOut,
+    ConfiguracionOut,
+    SolicitudUrgenteOut,
 )
 from backend.storage import crud
 from backend.core import logic
@@ -30,6 +27,13 @@ from backend.services.corporativo import (
     obtener_misiones_financiables,
     obtener_resumen_corporativo,
     generar_reporte_esg,
+)
+from backend.services.notificaciones import (
+    crear_notificacion,
+    obtener_notificaciones,
+    marcar_leida,
+    marcar_todas_leidas,
+    enviar_alerta_critica_bg,
 )
 
 
@@ -168,3 +172,124 @@ def obtener_reporte_esg(periodo: int = 30, db: Session = Depends(get_db)):
     """
     return generar_reporte_esg(db, periodo_dias=periodo)
 
+
+# ── Misiones Urgentes ─────────────────────────────────────────────────────────
+
+@api_router.post("/misiones/urgente", response_model=SolicitudUrgenteOut, tags=["Misiones"])
+def solicitar_abastecimiento_urgente(
+    insumo_id: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """
+    Botón 'Solicitar Abastecimiento Urgente' del CareForecast.
+    Genera movimiento de entrada urgente + notificación interna + correo en background.
+    """
+    from database.models import InsumoSQL
+    from backend.models.domain import MovimientoCreate
+
+    insumo = db.query(InsumoSQL).filter(InsumoSQL.id == insumo_id).first()
+    if not insumo:
+        raise HTTPException(status_code=404, detail="Insumo no encontrado.")
+
+    predicciones = calcular_forecast(db)
+    forecast_item = next((f for f in predicciones if f.id == insumo_id), None)
+    consumo_ref = forecast_item.consumo_estimado if forecast_item else insumo.consumo_diario
+    cantidad = max(10, int(consumo_ref * 14))
+
+    movimiento = crud.registrar_movimiento(
+        db,
+        MovimientoCreate(
+            insumo_id=insumo_id,
+            tipo_movimiento="entrada",
+            cantidad=cantidad,
+            origen="urgente",
+            observacion="Abastecimiento urgente solicitado manualmente desde CareForecast.",
+        ),
+    )
+
+    notif = crear_notificacion(
+        db,
+        tipo="urgente",
+        titulo=f"Abastecimiento urgente: {insumo.nombre}",
+        mensaje=f"Entrada de {cantidad} uds registrada. Stock nuevo: {insumo.stock_actual}.",
+        insumo_id=insumo_id,
+    )
+
+    background_tasks.add_task(
+        enviar_alerta_critica_bg,
+        db_url="",
+        insumo_nombre=insumo.nombre,
+        stock=insumo.stock_actual,
+        tipo="urgente",
+    )
+
+    return SolicitudUrgenteOut(
+        movimiento_id=movimiento.id,
+        insumo_id=insumo_id,
+        insumo_nombre=insumo.nombre,
+        cantidad_reabastecida=cantidad,
+        stock_nuevo=insumo.stock_actual,
+        notificacion_id=notif.id,
+        mensaje=f"Abastecimiento urgente de {cantidad} uds registrado.",
+    )
+
+
+# ── Notificaciones ────────────────────────────────────────────────────────────
+
+@api_router.get("/notificaciones", response_model=List[NotificacionOut], tags=["Notificaciones"])
+def listar_notificaciones(solo_no_leidas: bool = False, limit: int = 20, db: Session = Depends(get_db)):
+    """Notificaciones del sistema para el panel administrativo."""
+    rows = obtener_notificaciones(db, solo_no_leidas=solo_no_leidas, limit=limit)
+    result = []
+    for r in rows:
+        out = NotificacionOut.model_validate(r)
+        out.insumo_nombre = r.insumo.nombre if r.insumo else None
+        result.append(out)
+    return result
+
+
+@api_router.get("/notificaciones/count", tags=["Notificaciones"])
+def contar_no_leidas(db: Session = Depends(get_db)):
+    """Badge count del sidebar: número de notificaciones no leídas."""
+    from database.models import NotificacionSQL
+    count = db.query(NotificacionSQL).filter(NotificacionSQL.leida == False).count()
+    return {"no_leidas": count}
+
+
+@api_router.patch("/notificaciones/{notificacion_id}/leer", response_model=NotificacionOut, tags=["Notificaciones"])
+def leer_notificacion(notificacion_id: str, db: Session = Depends(get_db)):
+    """Marca una notificación como leída."""
+    notif = marcar_leida(db, notificacion_id)
+    if not notif:
+        raise HTTPException(status_code=404, detail="Notificación no encontrada.")
+    return NotificacionOut.model_validate(notif)
+
+
+@api_router.post("/notificaciones/leer-todas", tags=["Notificaciones"])
+def leer_todas_notificaciones(db: Session = Depends(get_db)):
+    """Limpia la bandeja: marca todas como leídas."""
+    count = marcar_todas_leidas(db)
+    return {"marcadas": count}
+
+
+# ── Configuración Global ──────────────────────────────────────────────────────
+
+@api_router.get("/configuracion", response_model=List[ConfiguracionOut], tags=["Admin"])
+def listar_configuracion(db: Session = Depends(get_db)):
+    """Parámetros globales del sistema."""
+    from database.models import ConfiguracionSQL
+    return db.query(ConfiguracionSQL).all()
+
+
+@api_router.patch("/configuracion/{clave}", response_model=ConfiguracionOut, tags=["Admin"])
+def actualizar_parametro(clave: str, valor: str, db: Session = Depends(get_db)):
+    """Actualiza un parámetro del sistema sin redeploy (ej: familias_actuales=52)."""
+    from database.models import ConfiguracionSQL
+    row = db.query(ConfiguracionSQL).filter_by(clave=clave).first()
+    if not row:
+        raise HTTPException(status_code=404, detail=f"Clave '{clave}' no encontrada.")
+    row.valor = valor
+    db.commit()
+    db.refresh(row)
+    return row

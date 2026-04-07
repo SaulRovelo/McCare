@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -30,6 +31,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { Badge } from "@/components/ui/badge"
+import { getNotificacionesCount } from "@/services/api"
 
 const menuPrincipal = [
   { title: "Panel de Control",      href: "/dashboard",          icon: LayoutDashboard },
@@ -43,7 +45,7 @@ const menuPrincipal = [
 
 const menuGestion = [
   { title: "Familias",              href: "/dashboard/familias", icon: Users },
-  { title: "Notificaciones",        href: "/dashboard/notificaciones", icon: Bell, badge: "3" },
+  { title: "Notificaciones", href: "/dashboard/notificaciones", icon: Bell },
 ]
 
 const menuSoporte = [
@@ -53,6 +55,21 @@ const menuSoporte = [
 
 export function DashboardSidebar() {
   const pathname = usePathname()
+  const [notifCount, setNotifCount] = useState<number>(0)
+
+  useEffect(() => {
+    const fetchCount = async () => {
+      try {
+        const data = await getNotificacionesCount()
+        setNotifCount(data.no_leidas)
+      } catch {
+        // Silencioso — no romper UI si el backend no responde
+      }
+    }
+    fetchCount()
+    const interval = setInterval(fetchCount, 30_000)  // Actualizar cada 30s
+    return () => clearInterval(interval)
+  }, [])
 
   return (
     <Sidebar className="border-r border-border/50">
@@ -111,12 +128,12 @@ export function DashboardSidebar() {
                     <Link href={item.href}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
-                      {item.badge && (
+                      {item.title === "Notificaciones" && notifCount > 0 && (
                         <Badge
                           variant="secondary"
                           className="ml-auto text-[10px] px-1.5 py-0 h-5 bg-[#DB0007] text-white"
                         >
-                          {item.badge}
+                          {notifCount > 99 ? "99+" : notifCount}
                         </Badge>
                       )}
                     </Link>
