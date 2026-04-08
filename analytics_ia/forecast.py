@@ -79,6 +79,23 @@ def calcular_forecast(db: Session, dias_historico: int = 30) -> List[ForecastRes
     resultados: List[ForecastResult] = []
     now = datetime.utcnow()
 
+    # ── [NUEVO] Contexto Operativo Real: Familias ──
+    from database.models import FamiliaSQL
+    from sqlalchemy import func
+
+    # Calcular ocupación real sumando personas (adultos + ninos) en familias activas
+    total_personas_activas = db.query(
+        func.sum(FamiliaSQL.numero_adultos + FamiliaSQL.numero_ninos)
+    ).filter(FamiliaSQL.estado == "activa").scalar() or 0
+
+    personas_en_sede = total_personas_activas
+    
+    # Asumimos una ocupación "base" operativa de diseño para el albergue
+    # Por ejemplo, si el albergue se planeó para 50 personas:
+    OCUPACION_BASE = 50.0
+    factor_ajuste = max(1.0, personas_en_sede / OCUPACION_BASE) if personas_en_sede > 0 else 1.0
+
+
     for insumo in insumos_db:
         # Predecir consumo medio usando al Oráculo de Hoeffding para los prox. 3 días
         predicciones = []
@@ -97,6 +114,9 @@ def calcular_forecast(db: Session, dias_historico: int = 30) -> List[ForecastRes
             consumo_estimado = insumo.consumo_diario if insumo.consumo_diario > 0 else 0.5
             metodo = "fallback_base"
             confianza = "baja"
+
+        # Aplicar el factor de ajuste poblacional al consumo estimado
+        consumo_estimado = consumo_estimado * factor_ajuste
 
         stock = insumo.stock_actual
         nivel_critico = insumo.nivel_critico
@@ -138,7 +158,10 @@ def calcular_forecast(db: Session, dias_historico: int = 30) -> List[ForecastRes
             dias_para_agotarse=dias_agotarse,
             estado_forecast=estado,
             confianza_basica=confianza,
-            mensaje_forecast=mensaje
+            mensaje_forecast=mensaje,
+            ocupacion_actual=total_personas_activas,
+            factor_ajuste=round(factor_ajuste, 2),
+            personas_en_sede=personas_en_sede
         ))
 
     resultados.sort(key=lambda x: (

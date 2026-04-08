@@ -140,6 +140,11 @@ class ForecastResult(BaseModel):
     estado_forecast: Literal["estable", "atencion", "critico", "sin_datos"]
     confianza_basica: Literal["alta", "media", "baja"]
     mensaje_forecast: str
+    
+    # Contexto Operativo Real (Familias)
+    ocupacion_actual: Optional[int] = None
+    factor_ajuste: Optional[float] = None
+    personas_en_sede: Optional[int] = None
 
 class ImpactStory(BaseModel):
     """Historia Narrativa Oficial (B2C) dictaminada por la capa de Negocio."""
@@ -201,3 +206,107 @@ class SolicitudUrgenteOut(BaseModel):
     stock_nuevo: int
     notificacion_id: str
     mensaje: str
+
+
+# ── Schemas de Autenticación y Usuarios ────────────────────────────────────────
+
+class RegistroRequest(BaseModel):
+    """Payload para registrar un nuevo usuario."""
+    nombre: str = Field(..., min_length=2, max_length=150)
+    email: str  = Field(..., description="Email único del usuario")
+    password: str = Field(..., min_length=8, description="Mínimo 8 caracteres")
+    rol: Literal["donante", "corporativo", "admin"] = "donante"
+    sede: Optional[str] = None              # Solo para admin
+    empresa_nombre: Optional[str] = None    # Para rol corporativo
+    empresa_rfc: Optional[str] = None       # Para rol corporativo
+
+
+class LoginRequest(BaseModel):
+    """Credenciales para inicio de sesión."""
+    email: str
+    password: str
+
+
+class TokenOut(BaseModel):
+    """Token JWT devuelto tras login o registro exitoso."""
+    access_token: str
+    token_type: str = "bearer"
+    rol: str
+    nombre: str
+    usuario_id: str
+
+
+class PerfilDonanteOut(BaseModel):
+    """Perfil extendido del donante para el panel personal."""
+    usuario_id: str
+    preferencias_categoria: Optional[str]   # JSON string
+    nivel_urgencia_pref: Optional[str]
+    tipo_donacion_pref: Optional[str]
+    total_donado_mxn: float
+    total_movimientos: int
+    nivel: str                              # bronce | plata | oro | platino
+    avatar_url: Optional[str]
+    bio: Optional[str]
+    empresa_nombre: Optional[str]
+    empresa_rfc: Optional[str]
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UsuarioOut(BaseModel):
+    """Datos del usuario autenticado — devuelto por GET /auth/me."""
+    id: str
+    nombre: str
+    email: str
+    rol: str
+    activo: bool
+    sede: Optional[str]
+    fecha_creacion: datetime
+    ultimo_login: Optional[datetime]
+    perfil: Optional[PerfilDonanteOut] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ActualizarPerfilRequest(BaseModel):
+    """Campos actualizables por el propio usuario."""
+    nombre: Optional[str] = Field(None, min_length=2, max_length=150)
+    preferencias_categoria: Optional[str] = None   # JSON string
+    nivel_urgencia_pref: Optional[str] = None
+    tipo_donacion_pref: Optional[str] = None
+    bio: Optional[str] = Field(None, max_length=300)
+    avatar_url: Optional[str] = None
+
+
+# ── Schemas de Familias ────────────────────────────────────────
+
+class FamiliaCreate(BaseModel):
+    sede: str = "cdmx"
+    numero_adultos: int = Field(..., ge=1)
+    numero_ninos: int = Field(..., ge=0)
+    dias_estancia_est: int = Field(7, ge=1)
+    habitacion: Optional[str] = None
+    paciente_edad: Optional[int] = None
+    paciente_referencia: Optional[str] = None
+    necesidades_especiales: Optional[str] = None  # JSON dict string
+
+class FamiliaOut(BaseModel):
+    id: str
+    sede: str
+    numero_adultos: int
+    numero_ninos: int
+    dias_estancia_est: int
+    dias_reales: int
+    habitacion: Optional[str]
+    paciente_edad: Optional[int]
+    paciente_referencia: Optional[str]
+    necesidades_especiales: Optional[str]
+    estado: str
+    fecha_ingreso: datetime
+    fecha_alta: Optional[datetime]
+    model_config = ConfigDict(from_attributes=True)
+
+class FamiliaStats(BaseModel):
+    total_activas: int
+    total_adultos: int
+    total_ninos: int
+    promedio_dias_estancia: float
+
