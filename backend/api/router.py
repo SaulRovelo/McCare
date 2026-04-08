@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
-from database.connection import get_db
+from database.connection import get_db, engine
 from backend.models.domain import (
     Insumo, InsumoCreate,
     MisionCritica,
@@ -44,7 +44,7 @@ api_router = APIRouter()
 
 @api_router.get("/health", tags=["Sistema"])
 def health_check():
-    return {"status": "ok", "version": "12.0.0", "database": "sqlite"}
+    return {"status": "ok", "version": "12.0.0", "database": engine.name}
 
 
 # ── Inventario ───────────────────────────────────────────────────────────────

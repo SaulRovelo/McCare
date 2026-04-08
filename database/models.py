@@ -10,6 +10,12 @@ v3.0 — Agrega:
   - PerfilDonanteSQL  (perfil extendido, preferencias e historial)
   - FK usuario_id en DonacionSQL y NotificacionSQL
 """
+<<<<<<< HEAD
+=======
+from sqlalchemy import Column, String, Float, Integer, DateTime, ForeignKey, Boolean, Text, Uuid
+from sqlalchemy.orm import relationship
+from datetime import datetime
+>>>>>>> feat/migracion-supabase
 import uuid
 import enum
 from datetime import datetime
@@ -130,6 +136,7 @@ class InsumoSQL(Base):
 
     __tablename__ = "insumos"
 
+<<<<<<< HEAD
     id               = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
     nombre           = Column(String(100), index=True, nullable=False)
     categoria        = Column(String(100), nullable=False)
@@ -140,6 +147,18 @@ class InsumoSQL(Base):
     sede             = Column(String(50), nullable=False, default="cdmx")
     costo_unitario   = Column(Float, nullable=False, default=10.0)
     fecha_creacion   = Column(DateTime, default=datetime.utcnow)
+=======
+    id              = Column(Uuid(as_uuid=False), primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    nombre          = Column(String(100), index=True, nullable=False)
+    categoria       = Column(String(100), nullable=False)  # Alimentos | Higiene | Médico | Cuidado | Logística | Otros
+    stock_actual    = Column(Integer, nullable=False, default=0)
+    consumo_diario  = Column(Float, nullable=False, default=0.0)
+    nivel_critico   = Column(Integer, nullable=False, default=0)
+    capacidad_maxima= Column(Integer, nullable=False, default=100)
+    sede            = Column(String(50), nullable=False, default="cdmx")
+    costo_unitario  = Column(Float, nullable=False, default=10.0)   # MXN
+    fecha_creacion  = Column(DateTime, default=datetime.utcnow)
+>>>>>>> feat/migracion-supabase
 
     movimientos      = relationship("MovimientoSQL",   back_populates="insumo", cascade="all, delete-orphan")
     donaciones       = relationship("DonacionSQL",     back_populates="insumo")
@@ -151,9 +170,15 @@ class InsumoSQL(Base):
 class MovimientoSQL(Base):
     __tablename__ = "movimientos_inventario"
 
+<<<<<<< HEAD
     id               = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
     insumo_id        = Column(String, ForeignKey("insumos.id", ondelete="CASCADE"), nullable=False, index=True)
     tipo_movimiento  = Column(String(50), nullable=False)
+=======
+    id               = Column(Uuid(as_uuid=False), primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    insumo_id        = Column(Uuid(as_uuid=False), ForeignKey("insumos.id", ondelete="CASCADE"), nullable=False, index=True)
+    tipo_movimiento  = Column(String(50), nullable=False)   # entrada | salida | ajuste
+>>>>>>> feat/migracion-supabase
     cantidad         = Column(Integer, nullable=False)
     stock_resultante = Column(Integer, nullable=False)
     origen           = Column(String(30), nullable=False, default="interno")
@@ -168,6 +193,7 @@ class MovimientoSQL(Base):
 class DonacionSQL(Base):
     __tablename__ = "donaciones"
 
+<<<<<<< HEAD
     id               = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
     insumo_id        = Column(String, ForeignKey("insumos.id", ondelete="SET NULL"),   nullable=True, index=True)
     usuario_id       = Column(String, ForeignKey("usuarios.id", ondelete="SET NULL"),  nullable=True, index=True)
@@ -179,6 +205,18 @@ class DonacionSQL(Base):
     donante_email    = Column(String(150), nullable=True)
     observacion      = Column(String(300), nullable=True)
     fecha            = Column(DateTime, default=datetime.utcnow, index=True)
+=======
+    id              = Column(Uuid(as_uuid=False), primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    insumo_id       = Column(Uuid(as_uuid=False), ForeignKey("insumos.id", ondelete="SET NULL"), nullable=True, index=True)
+    monto_mxn       = Column(Float, nullable=True)          # Donación monetaria (nullable si es en especie)
+    cantidad_especie= Column(Integer, nullable=True)        # Donación en especie (nullable si es monetaria)
+    tipo            = Column(String(20), nullable=False, default="monetaria")  # monetaria | especie
+    origen          = Column(String(30), nullable=False, default="publico")    # publico | corporativo | interno
+    donante_nombre  = Column(String(150), nullable=True)
+    donante_email   = Column(String(150), nullable=True)
+    observacion     = Column(String(300), nullable=True)
+    fecha           = Column(DateTime, default=datetime.utcnow, index=True)
+>>>>>>> feat/migracion-supabase
 
     insumo           = relationship("InsumoSQL",   back_populates="donaciones")
     usuario          = relationship("UsuarioSQL",  back_populates="donaciones")
@@ -189,6 +227,7 @@ class DonacionSQL(Base):
 class NotificacionSQL(Base):
     __tablename__ = "notificaciones"
 
+<<<<<<< HEAD
     id              = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
     tipo            = Column(String(50), nullable=False)
     insumo_id       = Column(String, ForeignKey("insumos.id",   ondelete="SET NULL"), nullable=True, index=True)
@@ -197,6 +236,15 @@ class NotificacionSQL(Base):
     mensaje         = Column(Text, nullable=False)
     leida           = Column(Boolean, nullable=False, default=False)
     fecha           = Column(DateTime, default=datetime.utcnow, index=True)
+=======
+    id          = Column(Uuid(as_uuid=False), primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    tipo        = Column(String(50), nullable=False)        # critico | urgente | atencion | info
+    insumo_id   = Column(Uuid(as_uuid=False), ForeignKey("insumos.id", ondelete="SET NULL"), nullable=True, index=True)
+    titulo      = Column(String(200), nullable=False)
+    mensaje     = Column(Text, nullable=False)
+    leida       = Column(Boolean, nullable=False, default=False)
+    fecha       = Column(DateTime, default=datetime.utcnow, index=True)
+>>>>>>> feat/migracion-supabase
 
     insumo          = relationship("InsumoSQL",  back_populates="notificaciones")
     usuario_destino = relationship("UsuarioSQL", back_populates="notificaciones_propias")

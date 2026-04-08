@@ -1,0 +1,33 @@
+id,insumo_id,tipo_movimiento,cantidad,stock_resultante,fecha,observacion
+72d8d9cc-c404-458f-b79b-6b3cc0b16612,201d8ac7-d0af-4988-8ff7-e0d2c2ddd7c4,entrada,10,10,2026-04-07 04:04:49.982139,Inventario inicial declarado en creación
+dbcecb1f-70a2-460b-b1a6-0d79e3168944,31752635-271a-4be6-9ce1-4e37860c916a,entrada,25,25,2026-04-07 04:04:50.004767,Inventario inicial declarado en creación
+f0f2116c-7740-46b9-bc31-d45d21b1d2ac,deec6df5-9da3-47ce-9756-130e90349719,entrada,40,40,2026-04-07 04:04:50.023668,Inventario inicial declarado en creación
+d379d559-e7fd-4a3c-8a3b-6b652c2b6bfe,7d37a48b-7d59-490e-85e2-ad5c4431a1c9,entrada,80,80,2026-04-07 04:04:50.044187,Inventario inicial declarado en creación
+7a2c2a2b-c547-4f02-87a6-766aa05ac71e,03a86562-a0ed-4b92-b4bf-4dd523d4a3a8,entrada,150,150,2026-04-07 04:04:50.063931,Inventario inicial declarado en creación
+0f8cc9bf-2069-4e95-8c01-9492dcc95a4b,0c9964e4-54c2-4190-831c-5c3ec7e065b5,entrada,15,15,2026-04-07 04:04:50.077236,Inventario inicial declarado en creación
+8522b8fe-4486-44f0-b697-06c7dc6cb264,c17e5080-8431-41d4-8d63-979477527adc,entrada,300,300,2026-04-07 04:04:50.090680,Inventario inicial declarado en creación
+22f12e88-7cea-4d87-992d-a134f2e8c2e4,90e10b8a-f19a-40af-bf28-f50d65a21a1e,entrada,15,15,2026-04-07 04:04:50.106158,Inventario inicial declarado en creación
+f62bc413-3cac-4545-8734-33cda7c42fc6,7f0d7ba0-1840-43c3-8af1-56d80e507770,entrada,12,12,2026-04-07 04:04:50.123803,Inventario inicial declarado en creación
+a0558224-cf7a-42e9-9ca9-0dba333e7b7b,2d0661da-2e4f-44c9-9eee-420964b04d27,entrada,25,25,2026-04-07 04:04:50.140233,Inventario inicial declarado en creación
+9683507f-73ef-4cc4-bf6b-eae144de60b3,90e10b8a-f19a-40af-bf28-f50d65a21a1e,entrada,980,995,2026-04-07 04:08:10.288267,Reabastecimiento — acción corporativo
+d0c76ddb-0058-4d96-9bf8-4a05d08f4286,201d8ac7-d0af-4988-8ff7-e0d2c2ddd7c4,entrada,980,990,2026-04-07 04:08:17.574065,Reabastecimiento — acción corporativo
+6d8c5269-ac9e-4d93-83a5-1dd85b0520f6,31752635-271a-4be6-9ce1-4e37860c916a,entrada,980,1005,2026-04-07 04:08:21.869459,Reabastecimiento — acción corporativo
+1fddc8ee-0ccb-44bc-8cf0-8e7c664247cc,0c9964e4-54c2-4190-831c-5c3ec7e065b5,entrada,980,995,2026-04-07 04:13:56.040404,Reabastecimiento — acción corporativo
+e5f734fe-d6b4-4ae2-97be-031cd46a8bdf,201d8ac7-d0af-4988-8ff7-e0d2c2ddd7c4,salida,198,792,2026-04-02 04:48:44.093479,Salida por contingencia climática
+cbfa2bb4-6bd9-4bfc-83c3-886e4d9d40dd,201d8ac7-d0af-4988-8ff7-e0d2c2ddd7c4,salida,198,594,2026-04-03 04:48:44.093479,Salida por contingencia climática
+3ef456e7-c9d3-421b-887d-76792a5d0acd,201d8ac7-d0af-4988-8ff7-e0d2c2ddd7c4,salida,198,396,2026-04-04 04:48:44.093479,Salida por contingencia climática
+5190a4f9-0b76-4bb2-bc86-424c95edccdd,201d8ac7-d0af-4988-8ff7-e0d2c2ddd7c4,salida,198,198,2026-04-05 04:48:44.093479,Salida por contingencia climática
+022a1a97-8d64-4627-9685-591d08e99a2f,201d8ac7-d0af-4988-8ff7-e0d2c2ddd7c4,salida,198,0,2026-04-06 04:48:44.093479,Salida por contingencia climática
+abb3cde2-57b5-4c59-afc7-fb936be479bc,31752635-271a-4be6-9ce1-4e37860c916a,salida,201,804,2026-04-02 04:48:44.093479,Salida por contingencia climática
+f7d12505-33ca-4f8a-bf56-2588864e7246,31752635-271a-4be6-9ce1-4e37860c916a,salida,201,603,2026-04-03 04:48:44.093479,Salida por contingencia climática
+0adf5434-d73f-4a01-92f3-5a56b5149a74,31752635-271a-4be6-9ce1-4e37860c916a,salida,201,402,2026-04-04 04:48:44.093479,Salida por contingencia climática
+470867e4-aa38-4da4-a7f1-04fe3c96fc63,31752635-271a-4be6-9ce1-4e37860c916a,salida,201,201,2026-04-05 04:48:44.093479,Salida por contingencia climática
+48fc5782-e64f-4f60-968b-5d58a4fe307b,31752635-271a-4be6-9ce1-4e37860c916a,salida,201,0,2026-04-06 04:48:44.093479,Salida por contingencia climática
+5edb8010-ff51-47c7-9b8d-ef42eccdfb87,deec6df5-9da3-47ce-9756-130e90349719,salida,8,32,2026-04-02 04:48:44.093479,Salida por contingencia climática
+9ae06b0d-d4d7-450b-879e-38d0d4f4ad03,deec6df5-9da3-47ce-9756-130e90349719,salida,8,24,2026-04-03 04:48:44.093479,Salida por contingencia climática
+cf3fae6b-d86e-4603-8b8d-dde6292f1fa6,deec6df5-9da3-47ce-9756-130e90349719,salida,8,16,2026-04-04 04:48:44.093479,Salida por contingencia climática
+a832ebcb-9234-4432-ae67-d8cdfc59db7b,deec6df5-9da3-47ce-9756-130e90349719,salida,8,8,2026-04-05 04:48:44.093479,Salida por contingencia climática
+5dc645ae-803f-4d3e-aff8-95013034a893,deec6df5-9da3-47ce-9756-130e90349719,salida,8,0,2026-04-06 04:48:44.093479,Salida por contingencia climática
+aedb6161-896e-47f7-963a-a52b6772e951,deec6df5-9da3-47ce-9756-130e90349719,entrada,112,112,2026-04-07 04:51:07.174956,Reabastecimiento — acción publico
+9bbee4df-90c8-4c0d-b052-3d588b63d390,201d8ac7-d0af-4988-8ff7-e0d2c2ddd7c4,entrada,42,42,2026-04-07 05:16:26.569723,Reabastecimiento — acción publico
+7c84c6c2-434a-4b01-8eb8-e543aecaf8f1,31752635-271a-4be6-9ce1-4e37860c916a,entrada,42,42,2026-04-07 05:19:48.839709,Reabastecimiento — acción publico

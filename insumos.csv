@@ -1,0 +1,11 @@
+id,nombre,categoria,stock_actual,consumo_diario,nivel_critico,capacidad_maxima,sede,costo_unitario,fecha_creacion
+201d8ac7-d0af-4988-8ff7-e0d2c2ddd7c4,Fórmula Láctea Etapa 1,Alimentos,42,5.0,15,100,cdmx,250.0,2026-04-07 04:04:49.977133
+31752635-271a-4be6-9ce1-4e37860c916a,Papilla de Frutas,Alimentos,42,12.0,30,150,cdmx,80.0,2026-04-07 04:04:50.002426
+deec6df5-9da3-47ce-9756-130e90349719,Leche Entera 1L,Alimentos,112,8.0,20,100,cdmx,35.0,2026-04-07 04:04:50.022072
+7d37a48b-7d59-490e-85e2-ad5c4431a1c9,Pañales Etapa 4,Higiene,80,25.0,60,300,puebla,320.0,2026-04-07 04:04:50.043206
+03a86562-a0ed-4b92-b4bf-4dd523d4a3a8,Toallas Húmedas (Paquete),Higiene,150,15.0,40,500,puebla,45.0,2026-04-07 04:04:50.061749
+0c9964e4-54c2-4190-831c-5c3ec7e065b5,Jabón Neutro,Higiene,995,5.0,15,100,puebla,20.0,2026-04-07 04:04:50.075909
+c17e5080-8431-41d4-8d63-979477527adc,Gasa Estéril,Médico,300,40.0,100,1000,edomex,15.0,2026-04-07 04:04:50.088640
+90e10b8a-f19a-40af-bf28-f50d65a21a1e,Suero Oral,Médico,995,10.0,25,100,edomex,30.0,2026-04-07 04:04:50.104279
+7f0d7ba0-1840-43c3-8af1-56d80e507770,Paracetamol Infantil,Médico,12,2.0,10,50,edomex,120.0,2026-04-07 04:04:50.121902
+2d0661da-2e4f-44c9-9eee-420964b04d27,Biberón Anti-cólicos,Cuidado,25,1.0,5,50,edomex,180.0,2026-04-07 04:04:50.138121

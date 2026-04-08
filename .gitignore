@@ -19,3 +19,7 @@ out/
 # SO
 .DS_Store
 Thumbs.db
+antigravity/
+node_modules/
+.next/
+__pycache__/
