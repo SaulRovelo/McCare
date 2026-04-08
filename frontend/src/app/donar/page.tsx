@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
+// Importación de PayPal
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js"
+import { toast } from "sonner"
 
 export default function DonarPage() {
   const [isMonthly, setIsMonthly] = useState(false)
@@ -20,6 +23,24 @@ export default function DonarPage() {
   const currentAmount = customAmount
     ? parseInt(customAmount) || 0
     : selectedAmount || 0
+
+  // Función para registrar la donación en el Backend post-pago
+  const registrarDonacionBackend = async (orderId: string) => {
+    setIsSubmitting(true)
+    try {
+      const { postDonacionGeneral } = await import('@/services/api')
+      await postDonacionGeneral(currentAmount)
+      toast.success('¡Donación exitosa! Fondos asignados por CareForecast.')
+      // Reset
+      setSelectedAmount(500)
+      setCustomAmount("")
+    } catch (e) {
+      console.error(e)
+      toast.error('Error al registrar la donación en el sistema.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-muted/30 px-4 py-12">
@@ -199,36 +220,42 @@ export default function DonarPage() {
                 </div>
               )}
             </CardContent>
+            
             <CardFooter className="flex-col gap-4 border-t bg-muted/30 pt-6">
-              <Button
-                size="lg"
-                className="h-14 w-full gap-2 text-lg font-semibold shadow-lg bg-mccare-red hover:bg-red-800 text-white"
-                disabled={currentAmount <= 0 || isSubmitting}
-                onClick={async () => {
-                  try {
-                    setIsSubmitting(true)
-                    const { postDonacionGeneral } = await import('@/services/api')
-                    await postDonacionGeneral(currentAmount)
-                    alert('¡Donación general exitosa! Tus fondos se han asignado automáticamente a las misiones más críticas según la previsión de cuidado.')
-                    // Reset
-                    setSelectedAmount(500)
-                    setCustomAmount("")
-                  } catch (e) {
-                    console.error(e)
-                    alert('Error procesando tu donación. Intenta más tarde.')
-                  } finally {
-                    setIsSubmitting(false)
-                  }
-                }}
-              >
-                <Heart className="h-5 w-5" />
-                {isSubmitting ? "Procesando..." : "Completar Donación"}
-                {!isSubmitting && currentAmount > 0 && (
-                  <span className="ml-1">
-                    · ${currentAmount.toLocaleString()} MXN
-                  </span>
+              <div className="w-full min-h-[60px]">
+                {currentAmount > 0 ? (
+                  <PayPalScriptProvider options={{ "clientId": "test", "currency": "USD" }}>
+                    <PayPalButtons
+                      style={{ layout: "vertical", color: "blue", shape: "rect", label: "pay" }}
+                      createOrder={(data, actions) => {
+                        return actions.order.create({
+                          intent: "CAPTURE",
+                          purchase_units: [{
+                            description: "Donación al Fondo General McCare",
+                            amount: {
+                              currency_code: "USD",
+                              value: (currentAmount / 20).toFixed(2), // Simulación de cambio
+                            }
+                          }]
+                        });
+                      }}
+                      onApprove={async (data, actions) => {
+                        await actions.order?.capture();
+                        await registrarDonacionBackend(data.orderID);
+                      }}
+                    />
+                  </PayPalScriptProvider>
+                ) : (
+                  <Button
+                    size="lg"
+                    className="h-14 w-full bg-slate-200 text-slate-400 cursor-not-allowed"
+                    disabled
+                  >
+                    Selecciona un monto para donar
+                  </Button>
                 )}
-              </Button>
+              </div>
+
               <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Lock className="h-3 w-3" />

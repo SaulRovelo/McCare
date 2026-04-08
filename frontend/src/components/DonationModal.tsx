@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { postMovimiento } from "@/services/api"
+// Importación de PayPal
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js"
 
 // ── Tipos ───────────────────────────────────────────────────────────────────
 
@@ -90,25 +92,24 @@ export function DonationModal({ open, onOpenChange, mission }: DonationModalProp
     setCustomAmount("")
   }
 
-  const handleDonate = async () => {
-    if (finalAmount <= 0) return
+  // Lógica de registro post-pago
+  const registerDonation = async (orderId: string) => {
     setIsSubmitting(true)
     try {
-      // Calcular unidades a aportar según costo unitario real del insumo
       const cantidad = Math.max(1, Math.floor(finalAmount / costoUnitario))
 
       await postMovimiento({
         insumo_id: raw.id,
         tipo_movimiento: "entrada",
         cantidad,
-        observacion: `Donación pública $${finalAmount} MXN — ${unidadesCubiertas} uds (${diasCubiertos} días)`,
+        observacion: `Donación PayPal (${orderId}) $${finalAmount} MXN — ${unidadesCubiertas} uds`,
         origen: "publico",
       })
 
       setDonated(true)
     } catch (err) {
-      console.error("Error en donación:", err)
-      alert("Hubo un error procesando la donación. Intenta de nuevo.")
+      console.error("Error en registro:", err)
+      alert("Pago realizado pero hubo un error al registrarlo en el sistema.")
     } finally {
       setIsSubmitting(false)
     }
@@ -311,15 +312,36 @@ export function DonationModal({ open, onOpenChange, mission }: DonationModalProp
               </div>
             )}
 
-            {/* Botón de donación */}
-            <Button
-              className="w-full gap-2 py-6 text-base bg-[#DA291C] hover:bg-[#b8221a] text-white mt-auto"
-              disabled={finalAmount <= 0 || isSubmitting}
-              onClick={handleDonate}
-            >
-              <Heart className="size-5" />
-              {isSubmitting ? "Procesando..." : `Donar $${finalAmount > 0 ? finalAmount.toLocaleString() : "—"} MXN`}
-            </Button>
+            {/* Botones de PayPal en lugar del botón rojo estándar */}
+            <div className="mt-auto min-h-[60px]">
+              {finalAmount > 0 ? (
+                <PayPalScriptProvider options={{ "clientId": "test", "currency": "USD" }}>
+                  <PayPalButtons
+                    style={{ layout: "horizontal", color: "blue", shape: "rect", label: "pay" }}
+                    createOrder={(data, actions) => {
+                      return actions.order.create({
+                        intent: "CAPTURE",
+                        purchase_units: [{
+                          description: `Donación McCare: ${mission.title}`,
+                          amount: {
+                            currency_code: "USD",
+                            value: (finalAmount / 20).toFixed(2), // Simulación de cambio a USD
+                          }
+                        }]
+                      });
+                    }}
+                    onApprove={async (data, actions) => {
+                      await actions.order?.capture();
+                      await registerDonation(data.orderID);
+                    }}
+                  />
+                </PayPalScriptProvider>
+              ) : (
+                <Button className="w-full bg-slate-200 text-slate-400 cursor-not-allowed py-6" disabled>
+                  Selecciona un monto
+                </Button>
+              )}
+            </div>
 
             {/* Sellos de seguridad */}
             <div className="flex items-center justify-center gap-6 mt-4">

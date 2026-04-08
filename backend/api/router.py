@@ -293,3 +293,33 @@ def actualizar_parametro(clave: str, valor: str, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(row)
     return row
+
+# ── Pagos (PayPal) ────────────────────────────────────────────────────────────
+
+@api_router.post("/pagos/crear-orden", tags=["Pagos"])
+def crear_orden_paypal(monto: float):
+    """
+    Simulación de creación de orden para el frontend.
+    En una implementación real, aquí llamarías a la API de PayPal para generar el OrderID.
+    """
+    import uuid
+    return {"order_id": str(uuid.uuid4()), "monto": monto}
+
+@api_router.post("/pagos/capturar/{order_id}", response_model=Movimiento, tags=["Pagos"])
+def capturar_pago_paypal(order_id: str, monto: float, db: Session = Depends(get_db)):
+    """
+    Captura el éxito del pago desde el frontend y lo registra como una
+    donación general en el inventario más crítico.
+    """
+    from backend.services.impacto import procesar_donacion_general
+    
+    # Registramos la donación en el sistema McCare
+    movimiento = procesar_donacion_general(db, monto)
+    if not movimiento:
+        raise HTTPException(status_code=400, detail="Error al registrar donación tras pago.")
+    
+    # Actualizamos la observación con el ID de PayPal para auditoría
+    movimiento.observacion = f"Donación vía PayPal (Orden: {order_id})."
+    db.commit()
+    
+    return movimiento
