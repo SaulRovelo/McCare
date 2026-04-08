@@ -66,7 +66,7 @@ def _calentar_modelo_desde_cero(db: Session):
     _model_warm = True
 
 
-def calcular_forecast(db: Session, dias_historico: int = 30) -> List[ForecastResult]:
+def calcular_forecast(db: Session, dias_historico: int = 30, sede: str = None) -> List[ForecastResult]:
     global _pipeline_ml, _model_warm
     
     if _pipeline_ml is None:
@@ -75,7 +75,10 @@ def calcular_forecast(db: Session, dias_historico: int = 30) -> List[ForecastRes
     if not _model_warm:
         _calentar_modelo_desde_cero(db)
 
-    insumos_db = db.query(InsumoSQL).all()
+    query_insumos = db.query(InsumoSQL)
+    if sede:
+        query_insumos = query_insumos.filter(InsumoSQL.sede == sede)
+    insumos_db = query_insumos.all()
     resultados: List[ForecastResult] = []
     now = datetime.utcnow()
 
@@ -84,16 +87,19 @@ def calcular_forecast(db: Session, dias_historico: int = 30) -> List[ForecastRes
     from sqlalchemy import func
 
     # Calcular ocupación real sumando personas (adultos + ninos) en familias activas
-    total_personas_activas = db.query(
-        func.sum(FamiliaSQL.numero_adultos + FamiliaSQL.numero_ninos)
-    ).filter(FamiliaSQL.estado == "activa").scalar() or 0
+    query_fam = db.query(func.sum(FamiliaSQL.numero_adultos + FamiliaSQL.numero_ninos)).filter(FamiliaSQL.estado == "activa")
+    if sede:
+        query_fam = query_fam.filter(FamiliaSQL.sede == sede)
+        
+    total_personas_activas = query_fam.scalar() or 0
 
     personas_en_sede = total_personas_activas
     
     # Asumimos una ocupación "base" operativa de diseño para el albergue
-    # Por ejemplo, si el albergue se planeó para 50 personas:
     OCUPACION_BASE = 50.0
-    factor_ajuste = max(1.0, personas_en_sede / OCUPACION_BASE) if personas_en_sede > 0 else 1.0
+    ocupacion_relativa = personas_en_sede / OCUPACION_BASE if OCUPACION_BASE > 0 else 0
+    # Multiplicador exponencial de estrés logístico: Si rebasa 100%, el estrés crece más agresivo.
+    factor_ajuste = (ocupacion_relativa ** 1.15) if ocupacion_relativa > 1.0 else max(1.0, ocupacion_relativa)
 
 
     for insumo in insumos_db:
@@ -117,6 +123,10 @@ def calcular_forecast(db: Session, dias_historico: int = 30) -> List[ForecastRes
 
         # Aplicar el factor de ajuste poblacional al consumo estimado
         consumo_estimado = consumo_estimado * factor_ajuste
+
+        # [NUEVO] Safety Padding: Añadir 10% de variabilidad estadística a la expectativa de salida
+        # para siempre alertar al sistema levemente más temprano y evitar que realmente toque cero.
+        consumo_estimado = consumo_estimado * 1.10
 
         stock = insumo.stock_actual
         nivel_critico = insumo.nivel_critico

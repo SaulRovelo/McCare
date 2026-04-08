@@ -4,12 +4,19 @@ import { useEffect, useState } from "react"
 import { getInsumos } from "@/services/api"
 import { Package, Plus } from "lucide-react"
 
+import { getSessionUser } from "@/lib/auth"
+
 export default function InventarioPage() {
   const [insumos, setInsumos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [sedeActiva, setSedeActiva] = useState("cdmx")
 
   useEffect(() => {
-    getInsumos()
+    const user = getSessionUser()
+    const sedeUser = user?.sede || "cdmx"
+    setSedeActiva(sedeUser)
+    
+    getInsumos(sedeUser)
       .then((data) => {
         setInsumos(data)
         setLoading(false)
@@ -25,7 +32,7 @@ export default function InventarioPage() {
             <div className="p-2 bg-slate-100 rounded-lg">
               <Package className="h-6 w-6 text-slate-700" />
             </div>
-            <h1 className="text-3xl font-bold tracking-tight">Inventario Global</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Inventario Global ({sedeActiva.toUpperCase()})</h1>
           </div>
           <button className="bg-[#DB0007] text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-[#b00005] transition-colors">
             <Plus className="h-4 w-4" />

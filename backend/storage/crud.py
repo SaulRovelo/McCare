@@ -18,9 +18,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def obtener_insumos(db: Session):
+def obtener_insumos(db: Session, sede: str = None):
     logger.info("CRUD GET: Consultando inventario en SQLite.")
-    return db.query(InsumoSQL).all()
+    query = db.query(InsumoSQL)
+    if sede:
+        query = query.filter(InsumoSQL.sede == sede)
+    return query.all()
 
 
 def agregar_insumo(db: Session, insumo_data: domain.InsumoCreate):
@@ -80,10 +83,12 @@ def obtener_movimientos(db: Session, insumo_id: str):
               .all())
 
 
-def obtener_movimientos_globales(db: Session, limit: int = 5):
+def obtener_movimientos_globales(db: Session, limit: int = 5, sede: str = None):
     logger.info("CRUD GET: Historial global")
-    return (db.query(MovimientoSQL)
-              .order_by(MovimientoSQL.fecha.desc())
+    query = db.query(MovimientoSQL)
+    if sede:
+        query = query.join(InsumoSQL).filter(InsumoSQL.sede == sede)
+    return (query.order_by(MovimientoSQL.fecha.desc())
               .limit(limit)
               .all())
 

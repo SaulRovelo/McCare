@@ -70,15 +70,20 @@ const actividadMock = [
   },
 ]
 
+import { getSessionUser } from "@/lib/auth"
+
 export default function DashboardPage() {
   const [resumen, setResumen] = useState<any>(null)
   const [movimientos, setMovimientos] = useState<any[]>([])
   const [forecasts, setForecasts] = useState<any[]>([])
 
   useEffect(() => {
-    getAdminResumen().then(setResumen).catch(console.error)
-    getMovimientosGlobales(4).then(setMovimientos).catch(console.error)
-    getForecast().then(setForecasts).catch(console.error)
+    const user = getSessionUser()
+    const sedeUser = user?.sede || "cdmx"
+    
+    getAdminResumen(sedeUser).then(setResumen).catch(console.error)
+    getMovimientosGlobales(4, sedeUser).then(setMovimientos).catch(console.error)
+    getForecast(20, sedeUser).then(setForecasts).catch(console.error)
   }, [])
 
   const isLoading = !resumen;

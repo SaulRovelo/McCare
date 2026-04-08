@@ -1,19 +1,21 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Users, BedDouble, Calendar, Plus, UserPlus, Users as UsersIcon, ChevronRight, Heart } from "lucide-react"
+import { Users, BedDouble, Calendar, Plus, UserPlus, Users as UsersIcon, ChevronRight, Heart, BrainCircuit } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { getFamilias, getFamiliasStats, registrarFamilia, darAltaFamilia } from "@/services/api"
+import { getFamilias, getFamiliasStats, registrarFamilia, darAltaFamilia, darProrrogaFamilia } from "@/services/api"
 import type { FamiliaPayload } from "@/services/api"
-import { Loader2 } from "lucide-react"
+import { Loader2, PlusCircle } from "lucide-react"
+import { getSessionUser } from "@/lib/auth"
 
 export default function FamiliasPage() {
   const [familias, setFamilias] = useState<any[]>([])
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [sedeActiva, setSedeActiva] = useState<string>("cdmx")
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -29,12 +31,12 @@ export default function FamiliasPage() {
   })
 
   // Cargar datos
-  const loadData = async () => {
+  const loadData = async (sede: string) => {
     try {
       setLoading(true)
       const [fData, sData] = await Promise.all([
-        getFamilias(),
-        getFamiliasStats()
+        getFamilias(sede),
+        getFamiliasStats(sede)
       ])
       setFamilias(fData)
       setStats(sData)
@@ -45,16 +47,35 @@ export default function FamiliasPage() {
     }
   }
 
-  useEffect(() => { loadData() }, [])
+  useEffect(() => { 
+    const user = getSessionUser()
+    const sedeUser = user?.sede || "cdmx"
+    setSedeActiva(sedeUser)
+    
+    // El formulario también se pre-llena con la sede del admin
+    setForm(prev => ({...prev, sede: sedeUser}))
+    
+    loadData(sedeUser) 
+  }, [])
 
   // Alta de familia
   const handleDarAlta = async (id: string) => {
     if (!confirm("¿Confirmar alta de esta familia?")) return
     try {
       await darAltaFamilia(id)
-      loadData()
+      loadData(sedeActiva)
     } catch (err: any) {
       alert("Error al dar de alta: " + err.message)
+    }
+  }
+
+  // Dar Prórroga
+  const handleProrroga = async (id: string) => {
+    try {
+      await darProrrogaFamilia(id)
+      loadData(sedeActiva)
+    } catch (err: any) {
+      alert("Error al dar prórroga: " + err.message)
     }
   }
 
@@ -64,10 +85,10 @@ export default function FamiliasPage() {
     try {
       await registrarFamilia(form)
       setIsModalOpen(false)
-      loadData()
+      loadData(sedeActiva)
       // reset form
       setForm({
-        sede: "cdmx", numero_adultos: 1, numero_ninos: 0, dias_estancia_est: 7,
+        sede: sedeActiva, numero_adultos: 1, numero_ninos: 0, dias_estancia_est: 7,
         habitacion: "", paciente_edad: undefined, paciente_referencia: "", necesidades_especiales: ""
       })
     } catch (err: any) {
@@ -127,15 +148,21 @@ export default function FamiliasPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-purple-500 md:col-span-2">
-            <CardContent className="p-4 flex items-center justify-between">
+          <Card className="border-0 shadow-md bg-gradient-to-br from-purple-50 to-indigo-50 md:col-span-2 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-5">
+               <BrainCircuit className="w-32 h-32" />
+            </div>
+            <CardContent className="p-4 flex items-center justify-between relative z-10">
               <div className="flex gap-4 items-center">
-                <div className="h-10 w-10 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600">
-                  <Calendar className="h-5 w-5" />
+                <div className="h-12 w-12 bg-white/60 backdrop-blur-sm rounded-xl border border-white flex items-center justify-center text-purple-600 shadow-sm">
+                  <BrainCircuit className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-500">Multiplicador CareForecast (Consumo)</p>
-                  <p className="text-2xl font-bold text-slate-900">{multiplicador}x <span className="text-sm font-normal text-slate-500">sobre el baseline de {OCUPACION_BASE} pax.</span></p>
+                  <p className="text-sm font-semibold text-purple-900/80 mb-1 tracking-tight">Análisis Operativo CareForecast</p>
+                  <p className="text-sm leading-snug text-slate-700">
+                    Nuestra IA detecta un nivel de ocupación equivalente al <strong className="text-purple-700 font-bold bg-white/50 px-1 py-0.5 rounded">{Math.round(parseFloat(multiplicador) * 100)}%</strong> de la capacidad proyectada. 
+                    Multiplicador exponencial aplicado al estrés de inventario.
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -144,7 +171,7 @@ export default function FamiliasPage() {
       )}
 
       {/* Lista de Familias */}
-      <h2 className="text-lg font-semibold mt-8 mb-2">Familias en Sede (CDMX)</h2>
+      <h2 className="text-lg font-semibold mt-8 mb-2">Familias en Sede ({sedeActiva.toUpperCase()})</h2>
       
       {loading ? (
         <div className="flex justify-center p-12">
@@ -158,20 +185,20 @@ export default function FamiliasPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {familias.map((f) => (
-            <Card key={f.id} className="border border-slate-200 shadow-sm relative overflow-hidden group">
+            <Card key={f.id} className="border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200 relative overflow-hidden group">
               <div className="absolute top-0 left-0 w-1 h-full bg-[#DA291C]" />
               <CardContent className="p-5">
                 <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="font-semibold text-slate-900 truncate pr-2" title={f.paciente_referencia || 'Familia s/n'}>
-                      Familia: {f.paciente_referencia || "Paciente No Reg."}
+                  <div className="flex-1 min-w-0 pr-3">
+                    <h3 className="font-semibold text-slate-900 truncate" title={f.paciente_referencia || 'Familia s/n'}>
+                      Fam: {f.paciente_referencia || "Paciente No Reg."}
                     </h3>
                     <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
-                      <BedDouble className="h-3 w-3" />
-                      Hab: {f.habitacion || "Asignar"}
+                      <BedDouble className="h-3 w-3 flex-shrink-0" />
+                      <span className="truncate">Hab: {f.habitacion || "Asignar"}</span>
                     </p>
                   </div>
-                  <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                  <Badge variant="outline" className="flex-shrink-0 bg-orange-50 text-orange-700 border-orange-200 font-medium tracking-tight">
                     {f.dias_estancia_est} d. est
                   </Badge>
                 </div>
@@ -187,11 +214,19 @@ export default function FamiliasPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-slate-400">Ingreso: {new Date(f.fecha_ingreso).toLocaleDateString()}</span>
-                  <Button variant="ghost" size="sm" onClick={() => handleDarAlta(f.id)} className="h-8 text-slate-600 hover:text-[#DA291C] hover:bg-red-50">
-                    Dar de alta <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
+                <div className="flex justify-between items-center bg-slate-50/50 -mx-5 -mb-5 px-5 py-3 border-t border-slate-100">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase font-semibold text-slate-400">Ingreso</span>
+                    <span className="text-xs text-slate-600">{new Date(f.fecha_ingreso).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleProrroga(f.id)} className="h-8 text-xs font-medium text-slate-600 hover:text-purple-700 hover:bg-purple-50 border-slate-200">
+                      <PlusCircle className="h-3.5 w-3.5 mr-1" /> Prórroga
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDarAlta(f.id)} className="h-8 text-xs font-medium text-slate-600 hover:text-[#DA291C] hover:bg-red-50">
+                      Dar de alta <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -243,8 +278,9 @@ export default function FamiliasPage() {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Sede</label>
                   <select value={form.sede} onChange={e => setForm({...form, sede: e.target.value})} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#DA291C] outline-none bg-white">
-                    <option value="cdmx">Sede Central (CDMX)</option>
-                    <option value="gdl">Sede Occidente (GDL)</option>
+                    <option value="cdmx">CDMX</option>
+                    <option value="puebla">Puebla</option>
+                    <option value="edomex">Estado de México</option>
                   </select>
                 </div>
               </div>

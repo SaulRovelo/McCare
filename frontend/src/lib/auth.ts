@@ -16,6 +16,7 @@ export interface SessionUser {
   nombre: string
   rol: "admin" | "donante" | "corporativo"
   access_token: string
+  sede?: string
 }
 
 // ── Guardar sesión ─────────────────────────────────────────────────────────
@@ -27,6 +28,7 @@ export function setSession(data: SessionUser): void {
     usuario_id: data.usuario_id,
     nombre: data.nombre,
     rol: data.rol,
+    sede: data.sede,
   }))
 }
 

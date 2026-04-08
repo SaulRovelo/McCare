@@ -39,7 +39,7 @@ const fetchJSON = async (url: string, options?: RequestInit) => {
 
 // ── Inventario ────────────────────────────────────────────────────────────────
 
-export const getInsumos = () => fetchJSON('/api/insumos');
+export const getInsumos = (sede?: string) => fetchJSON(`/api/insumos${sede ? `?sede=${sede}` : ''}`);
 
 export const postInsumo = (data: object) =>
   fetchJSON('/api/insumos', {
@@ -54,8 +54,8 @@ export const getMisiones = () => fetchJSON('/api/misiones');
 
 // ── Auditoría / Movimientos ───────────────────────────────────────────────────
 
-export const getMovimientosGlobales = (limit = 20) =>
-  fetchJSON(`/api/movimientos?limit=${limit}`);
+export const getMovimientosGlobales = (limit = 20, sede?: string) =>
+  fetchJSON(`/api/movimientos?limit=${limit}${sede ? `&sede=${sede}` : ''}`);
 
 export const getMovimientosPorInsumo = (insumoId: string) =>
   fetchJSON(`/api/insumos/${insumoId}/movimientos`);
@@ -79,12 +79,12 @@ export const postMovimiento = (data: {
 
 // ── Analítica ──────────────────────────────────────────────────────────────────
 
-export const getForecast = (limit = 20) =>
-  fetchJSON(`/api/forecast?limit=${limit}`);
+export const getForecast = (limit = 20, sede?: string) =>
+  fetchJSON(`/api/forecast?limit=${limit}${sede ? `&sede=${sede}` : ''}`);
 
 // ── Admin ──────────────────────────────────────────────────────────────────────
 
-export const getAdminResumen = () => fetchJSON('/api/admin/resumen');
+export const getAdminResumen = (sede?: string) => fetchJSON(`/api/admin/resumen${sede ? `?sede=${sede}` : ''}`);
 
 // ── B2C Público ───────────────────────────────────────────────────────────────
 
@@ -234,6 +234,9 @@ export const registrarFamilia = (data: FamiliaPayload) =>
 
 export const darAltaFamilia = (id: string) =>
   fetchJSON(`/api/familias/${id}/dar-alta`, { method: 'PATCH' });
+
+export const darProrrogaFamilia = (id: string) =>
+  fetchJSON(`/api/familias/${id}/prorroga`, { method: 'PATCH' });
 
 export const getFamiliasStats = (sede?: string) =>
   fetchJSON(`/api/familias/stats${sede ? `?sede=${sede}` : ''}`);

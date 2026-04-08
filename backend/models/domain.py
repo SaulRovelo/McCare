@@ -235,6 +235,7 @@ class TokenOut(BaseModel):
     rol: str
     nombre: str
     usuario_id: str
+    sede: Optional[str] = None
 
 
 class PerfilDonanteOut(BaseModel):

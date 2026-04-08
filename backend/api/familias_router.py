@@ -13,7 +13,20 @@ familias_router = APIRouter(prefix="/familias", tags=["Familias"])
 
 @familias_router.get("", response_model=List[FamiliaOut])
 def listar_familias(sede: str = None, estado: str = "activa", db: Session = Depends(get_db)):
-    """Lista las familias. Filtrable por sede y estado (activa/alta)."""
+    """Lista las familias. Filtrable por sede y estado. Ejecuta auto-alta a caducadas (+2 días)."""
+    # 1. Auto-alta de familias vencidas 
+    # (las que llevan > dias_estancia_est + 2)
+    now = datetime.utcnow()
+    activas = db.query(FamiliaSQL).filter(FamiliaSQL.estado == "activa").all()
+    for f in activas:
+        dias_lleva = (now - f.fecha_ingreso).days
+        if dias_lleva > (f.dias_estancia_est + 2):
+            f.estado = "alta"
+            f.fecha_alta = now
+            f.dias_reales = max(1, dias_lleva)
+    db.commit()
+
+    # 2. Consultar y retornar la info
     query = db.query(FamiliaSQL)
     if sede:
         query = query.filter(FamiliaSQL.sede == sede)
@@ -63,6 +76,24 @@ def dar_alta_familia(
     # Calcular días reales si es necesario
     delta = (familia.fecha_alta - familia.fecha_ingreso).days
     familia.dias_reales = max(1, delta)
+    db.commit()
+    db.refresh(familia)
+    return familia
+
+@familias_router.patch("/{familia_id}/prorroga", response_model=FamiliaOut)
+def extender_prorroga_familia(
+    familia_id: str, 
+    db: Session = Depends(get_db),
+    current_user: UsuarioSQL = Depends(require_admin)
+):
+    """Extiende la estancia de la familia en la sede por 3 días más."""
+    familia = db.query(FamiliaSQL).filter_by(id=familia_id).first()
+    if not familia:
+        raise HTTPException(status_code=404, detail="Familia no encontrada")
+    if familia.estado == "alta":
+        raise HTTPException(status_code=400, detail="No se puede extender una familia dada de alta")
+
+    familia.dias_estancia_est += 3
     db.commit()
     db.refresh(familia)
     return familia

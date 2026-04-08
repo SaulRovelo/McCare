@@ -71,6 +71,7 @@ def registrar_usuario(data: RegistroRequest, db: Session = Depends(get_db)):
         rol          = usuario.rol.value,
         nombre       = usuario.nombre,
         usuario_id   = usuario.id,
+        sede         = usuario.sede,
     )
 
 
@@ -108,6 +109,7 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
         rol          = usuario.rol.value,
         nombre       = usuario.nombre,
         usuario_id   = usuario.id,
+        sede         = usuario.sede,
     )
 
 

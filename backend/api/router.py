@@ -50,9 +50,9 @@ def health_check():
 # ── Inventario ───────────────────────────────────────────────────────────────
 
 @api_router.get("/insumos", response_model=List[Insumo], tags=["Inventario"])
-def listar_insumos(db: Session = Depends(get_db)):
+def listar_insumos(sede: str = None, db: Session = Depends(get_db)):
     """Lista completa del inventario actual."""
-    return crud.obtener_insumos(db)
+    return crud.obtener_insumos(db, sede=sede)
 
 
 @api_router.post("/insumos", response_model=Insumo, tags=["Inventario"])
@@ -74,9 +74,9 @@ def obtener_misiones(db: Session = Depends(get_db)):
 # ── Auditoría ─────────────────────────────────────────────────────────────────
 
 @api_router.get("/movimientos", response_model=List[Movimiento], tags=["Auditoría"])
-def listar_movimientos_globales(limit: int = 20, db: Session = Depends(get_db)):
+def listar_movimientos_globales(limit: int = 20, sede: str = None, db: Session = Depends(get_db)):
     """Últimos N movimientos de todo el almacén."""
-    return crud.obtener_movimientos_globales(db, limit=limit)
+    return crud.obtener_movimientos_globales(db, limit=limit, sede=sede)
 
 
 @api_router.post("/movimientos", response_model=Movimiento, tags=["Auditoría"])
@@ -94,9 +94,9 @@ def listar_movimientos_por_insumo(insumo_id: str, db: Session = Depends(get_db))
 # ── Analítica ─────────────────────────────────────────────────────────────────
 
 @api_router.get("/forecast", response_model=List[ForecastResult], tags=["Analítica"])
-def obtener_forecast(limit: int = 20, db: Session = Depends(get_db)):
+def obtener_forecast(limit: int = 20, sede: str = None, db: Session = Depends(get_db)):
     """Proyecciones de agotamiento por insumo (analytics_ia/forecast.py)."""
-    return calcular_forecast(db)[:limit]
+    return calcular_forecast(db, sede=sede)[:limit]
 
 
 # ── Admin ─────────────────────────────────────────────────────────────────────
