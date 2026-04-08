@@ -35,8 +35,18 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-// IMPORTANTE: Asegúrate de que esta ruta apunte correctamente a tu API real
-import { getForecast } from "@/services/api";
+import { getForecast, getInsumos } from "@/services/api";
+import { getSessionUser } from "@/lib/auth";
+
+/* ═══════════════════════════════════════════════════
+   HELPERS & FORMATTING
+   ═══════════════════════════════════════════════════ */
+
+function formatHumanTime(days: number) {
+  if (days <= 0.5) return "Se agota hoy";
+  if (days <= 1.5) return "Se agota mañana";
+  return `En ${Math.round(days)} días`;
+}
 
 /* ═══════════════════════════════════════════════════
    CONFIGURACIÓN VISUAL
@@ -73,28 +83,44 @@ export default function CareforecastPage() {
   const [supplies, setSupplies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [sedeActiva, setSedeActiva] = useState("cdmx");
 
   const fetchForecastData = async () => {
     setIsRefreshing(true);
     try {
-      const data = await getForecast(50);
+      const user = getSessionUser();
+      const sedeUser = user?.sede || "cdmx";
+      setSedeActiva(sedeUser);
 
-      // Adaptamos los datos de tu API al formato que necesita el diseño de Figma
-      const mappedData = data.map((item: any) => ({
-        id: item.id || Math.random().toString(),
-        name: item.nombre || item.insumo_nombre || "Insumo Desconocido",
-        category: item.categoria || "General",
-        icon: getIconForCategory(item.nombre || ""),
-        stock: item.stock_actual || 0,
-        unit: item.unidad_medida || "uds",
-        consumptionPerDay: item.consumo_diario_estimado || 0,
-        // Adaptamos los estados de tu API ('critico', 'atencion') a la UI
-        timeLeft: item.tiempo_restante_str || `${item.dias_para_agotarse}d`,
-        timeLeftMinutes: item.dias_para_agotarse * 24 * 60, // Para poder ordenar
-        depletionDate: item.fecha_agotamiento_estimada || "Próximamente",
-        status: item.estado_forecast || "estable",
-        impactLevel: item.dias_para_agotarse < 2 ? "Muy Alto" : (item.dias_para_agotarse < 5 ? "Alto" : "Medio")
-      }));
+      const [data, insumosData] = await Promise.all([
+        getForecast(50, sedeUser),
+        getInsumos(sedeUser)
+      ]);
+
+      const mappedData = data.map((item: any) => {
+        const matchingInsumo = insumosData.find((i: any) => String(i.id) === String(item.id)) || {};
+        const cost = matchingInsumo.costo_unitario || 0;
+        const maxCap = matchingInsumo.capacidad_maxima || 100;
+        const unitsNeeded = maxCap > item.stock_actual ? (maxCap - item.stock_actual) : maxCap;
+        const totalCost = unitsNeeded * cost;
+        const rawDays = item.dias_para_agotarse;
+        
+        return {
+          id: item.id || Math.random().toString(),
+          name: item.nombre || item.insumo_nombre || "Insumo Desconocido",
+          category: item.categoria || "General",
+          icon: getIconForCategory(item.nombre || ""),
+          stock: item.stock_actual || 0,
+          unit: item.unidad_medida || "uds",
+          consumptionPerDay: item.consumo_diario_estimado || 0,
+          timeLeft: formatHumanTime(rawDays),
+          timeLeftMinutes: rawDays * 24 * 60,
+          status: item.estado_forecast || "estable",
+          unitsNeeded: Math.ceil(unitsNeeded),
+          totalCost,
+          currentStockValue: item.stock_actual * cost
+        };
+      });
 
       setSupplies(mappedData);
     } catch (error) {
@@ -125,7 +151,7 @@ export default function CareforecastPage() {
           <div>
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-slate-900" style={{ fontSize: "1.5rem", fontWeight: 700, lineHeight: 1.2 }}>
-                Careforecast
+                CareForecast ({sedeActiva.toUpperCase()})
               </h1>
               <Badge className="bg-slate-900 text-slate-100 border-transparent hover:bg-slate-800" style={{ fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.05em" }}>
                 RIVER ML · HOEFFDING TREE
@@ -245,51 +271,57 @@ export default function CareforecastPage() {
             {criticalSupplies.slice(0, 3).map((supply) => {
               const SupplyIcon = supply.icon;
               return (
-                <Card key={supply.id} className="gap-0 border-2 border-red-200 bg-gradient-to-br from-white to-red-50/40 overflow-hidden relative shadow-sm">
-                  <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-red-500" />
-                  <CardContent className="p-5 pl-7">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
-                          <SupplyIcon className="w-5 h-5 text-red-600" />
+                <Card key={supply.id} className="gap-0 border-2 border-red-200 overflow-hidden relative shadow-sm hover:shadow-md transition-shadow">
+                  <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-red-600" />
+                  <CardContent className="p-4 pl-5">
+                    {/* NIVEL 1: ESTADO Y HEADLINE */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
+                          <SupplyIcon className="w-4 h-4 text-red-600" />
                         </div>
                         <div>
-                          <p className="text-slate-900" style={{ fontSize: "1rem", fontWeight: 600 }}>{supply.name}</p>
-                          <p className="text-slate-500" style={{ fontSize: "0.75rem" }}>{supply.category}</p>
+                          <p className="text-slate-900 leading-tight" style={{ fontSize: "0.95rem", fontWeight: 700 }}>{supply.name}</p>
+                          <p className="text-slate-400" style={{ fontSize: "0.75rem" }}>{supply.category}</p>
                         </div>
                       </div>
-                      <Badge className="bg-red-600 text-white border-transparent shadow-sm">
+                      <Badge className="bg-red-600 hover:bg-red-700 text-white border-transparent shadow-sm px-1.5 py-0.5" style={{ fontSize: "0.65rem" }}>
                         <Flame className="w-3 h-3 mr-1" />
                         CRÍTICO
                       </Badge>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="bg-white rounded-xl border border-slate-200 p-3.5 text-center shadow-sm">
-                        <p className="text-slate-400 mb-1 font-medium" style={{ fontSize: "0.6875rem" }}>Stock Actual</p>
-                        <p className="text-slate-900" style={{ fontSize: "1.5rem", fontWeight: 700, lineHeight: 1.1 }}>{supply.stock}</p>
-                        <p className="text-slate-400 mt-0.5" style={{ fontSize: "0.625rem" }}>{supply.unit}</p>
-                      </div>
-                      <div className="bg-white rounded-xl border border-slate-200 p-3.5 text-center shadow-sm">
-                        <p className="text-slate-400 mb-1 font-medium" style={{ fontSize: "0.6875rem" }}>Consumo/Día</p>
-                        <p className="text-slate-900" style={{ fontSize: "1.5rem", fontWeight: 700, lineHeight: 1.1 }}>{supply.consumptionPerDay}</p>
-                        <p className="text-slate-400 mt-0.5" style={{ fontSize: "0.625rem" }}>{supply.unit}/día</p>
-                      </div>
-                      <div className="bg-red-600 rounded-xl p-3.5 text-center shadow-md">
-                        <p className="text-red-200 mb-1 font-medium" style={{ fontSize: "0.6875rem" }}>Agotamiento IA</p>
-                        <p className="text-white" style={{ fontSize: "1.75rem", fontWeight: 800, lineHeight: 1.1 }}>{supply.timeLeft}</p>
-                        <p className="text-red-200 mt-0.5" style={{ fontSize: "0.625rem" }}>estimado</p>
-                      </div>
+                    {/* NIVEL 2: DECISIÓN (IMPACTO Y COSTO PRINCIPAL) */}
+                    <div className="bg-gradient-to-br from-red-50 to-rose-50/50 rounded-lg border border-red-100/60 p-3 text-center mb-3">
+                       <p className="text-red-700 font-extrabold text-lg tracking-tight mb-2 drop-shadow-sm">
+                          {supply.timeLeft}
+                       </p>
+                       <div className="flex flex-col gap-1.5 mt-1">
+                         <div className="flex justify-between items-center text-xs px-1">
+                           <span className="text-slate-500 font-medium tracking-wide">Cobertura requerida:</span>
+                           <span className="text-slate-900 font-bold bg-white px-2 py-0.5 rounded shadow-sm">{supply.unitsNeeded} {supply.unit}</span>
+                         </div>
+                         <div className="flex justify-between items-center text-xs px-1">
+                           <span className="text-slate-500 font-medium tracking-wide">Inversión est:</span>
+                           <span className="text-emerald-700 font-black bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded shadow-sm">
+                             {supply.totalCost.toLocaleString('es-MX')} MXN
+                           </span>
+                         </div>
+                       </div>
                     </div>
 
-                    <p className="text-red-500 mt-3 text-center font-medium" style={{ fontSize: "0.75rem" }}>
-                      Fecha de agotamiento: {supply.depletionDate}
-                    </p>
+                    {/* NIVEL 3: DATOS TÉCNICOS VISUALMENTE MENORES */}
+                    <div className="flex justify-between items-center px-3 mb-1 rounded-md bg-slate-50 border border-slate-100 py-1.5">
+                        <p className="text-[0.65rem] uppercase text-slate-500 font-semibold tracking-wider">
+                          Stock: <span className="text-slate-800 font-bold">{supply.stock}</span> {supply.unit}
+                        </p>
+                        <div className="h-3 w-px bg-slate-200"></div>
+                        <p className="text-[0.65rem] uppercase text-slate-500 font-semibold tracking-wider">
+                          Ritmo: <span className="text-slate-800 font-bold">{supply.consumptionPerDay}</span> /día
+                        </p>
+                    </div>
 
-                    <Button className="w-full mt-4 bg-[#DA291C] hover:bg-[#b8221a] text-white gap-2 cursor-pointer h-10 shadow-sm font-medium">
-                      <Zap className="w-4 h-4" />
-                      Solicitar Abastecimiento Urgente
-                    </Button>
+                    {/* NIVEL 4: ACCIÓN REMOVIDO A PETICIÓN DE USUARIO */}
                   </CardContent>
                 </Card>
               );
@@ -335,12 +367,12 @@ export default function CareforecastPage() {
                             <p className={cn("truncate", isCritical ? "text-red-800" : "text-slate-800")} style={{ fontSize: "0.875rem", fontWeight: 600 }}>{supply.name}</p>
                             <p className="text-slate-500 truncate" style={{ fontSize: "0.6875rem" }}>{supply.category}</p>
                           </div>
-                          <Badge className={cn("border-transparent text-white shrink-0 shadow-sm", cfg.badgeBg)} style={{ fontSize: "0.6875rem", fontWeight: 700, minWidth: "2.5rem", justifyContent: "center" }}>
+                          <Badge className={cn("border-transparent text-white shrink-0 shadow-sm whitespace-nowrap px-2 px-x px-2", cfg.badgeBg)} style={{ fontSize: "0.6875rem", fontWeight: 700, minWidth: "4.5rem", justifyContent: "center" }}>
                             {supply.timeLeft}
                           </Badge>
-                          <div className="text-right shrink-0 w-16">
-                            <p className="text-slate-700" style={{ fontSize: "0.8125rem", fontWeight: 600 }}>{supply.stock}</p>
-                            <p className="text-slate-400" style={{ fontSize: "0.5625rem" }}>{supply.unit}</p>
+                          <div className="text-right shrink-0 min-w-[5rem]">
+                            <p className="text-emerald-700" style={{ fontSize: "0.8125rem", fontWeight: 700 }}>{(supply.currentStockValue || 0).toLocaleString('es-MX')}</p>
+                            <p className="text-slate-400" style={{ fontSize: "0.5625rem", fontWeight: 600 }}>MXN</p>
                           </div>
                         </div>
                       );
@@ -379,11 +411,11 @@ export default function CareforecastPage() {
                   <TableRow className="bg-slate-50/80 hover:bg-slate-50/80 border-b-2 border-slate-200">
                     <TableHead className="text-slate-600 font-bold" style={{ fontSize: "0.75rem" }}>Insumo</TableHead>
                     <TableHead className="text-slate-600 font-bold" style={{ fontSize: "0.75rem" }}>Estado</TableHead>
-                    <TableHead className="text-slate-600 font-bold text-right" style={{ fontSize: "0.75rem" }}>Stock Actual</TableHead>
+                    <TableHead className="text-slate-600 font-bold text-right" style={{ fontSize: "0.75rem" }}>Valor Stock</TableHead>
                     <TableHead className="text-slate-600 font-bold text-right" style={{ fontSize: "0.75rem" }}>Consumo/Día</TableHead>
                     <TableHead className="text-slate-600 font-bold text-center" style={{ fontSize: "0.75rem" }}>Tiempo Crítico (IA)</TableHead>
                     <TableHead className="text-slate-600 font-bold" style={{ fontSize: "0.75rem" }}>Fecha Agotamiento</TableHead>
-                    <TableHead className="text-slate-600 font-bold text-center" style={{ fontSize: "0.75rem" }}>Impacto</TableHead>
+                    <TableHead className="text-slate-600 font-bold text-center" style={{ fontSize: "0.75rem" }}>Inversión MXN</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -453,15 +485,21 @@ function SupplyTableRow({ supply }: { supply: any }) {
         </Badge>
       </TableCell>
       <TableCell className="text-right">
-        <span className="text-slate-900" style={{ fontSize: "0.9375rem", fontWeight: 700 }}>{supply.stock}</span>
-        <span className="text-slate-500 ml-1" style={{ fontSize: "0.6875rem", fontWeight: 500 }}>{supply.unit}</span>
+        <div className="flex flex-col items-end">
+          <span className="text-emerald-700" style={{ fontSize: "0.9375rem", fontWeight: 700 }}>
+            ${(supply.currentStockValue || 0).toLocaleString('es-MX')} MXN
+          </span>
+          <span className="text-slate-400" style={{ fontSize: "0.6875rem", fontWeight: 500 }}>
+            {supply.stock} {supply.unit}
+          </span>
+        </div>
       </TableCell>
       <TableCell className="text-right">
         <span className="text-slate-700" style={{ fontSize: "0.875rem", fontWeight: 600 }}>{supply.consumptionPerDay}</span>
         <span className="text-slate-400 ml-0.5" style={{ fontSize: "0.6875rem" }}>/{supply.unit.replace("uds", "ud").replace("frascos", "fr").replace("latas", "lt")}</span>
       </TableCell>
       <TableCell className="text-center">
-        <span className={cn("inline-flex items-center justify-center px-3 py-1 rounded-full text-white shadow-sm", supply.status === "critico" ? "bg-red-600" : "bg-amber-500")} style={{ fontSize: "0.8125rem", fontWeight: 700, minWidth: "3.5rem" }}>
+        <span className={cn("inline-flex items-center justify-center px-3 py-1 rounded-full text-white shadow-sm whitespace-nowrap", supply.status === "critico" ? "bg-red-600" : "bg-amber-500")} style={{ fontSize: "0.8125rem", fontWeight: 700, minWidth: "4.5rem" }}>
           {supply.timeLeft}
         </span>
       </TableCell>
@@ -469,8 +507,8 @@ function SupplyTableRow({ supply }: { supply: any }) {
         <span className="text-slate-600 font-medium" style={{ fontSize: "0.8125rem" }}>{supply.depletionDate}</span>
       </TableCell>
       <TableCell className="text-center">
-        <Badge variant="outline" className={cn(impact, "font-semibold bg-transparent")} style={{ fontSize: "0.6875rem" }}>
-          {supply.impactLevel}
+        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold shadow-sm whitespace-nowrap" style={{ fontSize: "0.75rem" }}>
+          ${supply.totalCost.toLocaleString('es-MX')} MXN
         </Badge>
       </TableCell>
     </TableRow>

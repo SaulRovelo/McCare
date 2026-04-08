@@ -1,509 +1,299 @@
 "use client"
 
-import { useState } from "react"
-import {
-    Users,
-    Search,
-    Plus,
-    Home,
-    Baby,
-    Heart,
-    Clock,
-    AlertCircle,
-    Phone,
-    Mail,
-    MoreHorizontal,
-    Filter,
-    Car,
-} from "lucide-react"
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { useState, useEffect } from "react"
+import { Users, BedDouble, Calendar, Plus, UserPlus, Users as UsersIcon, ChevronRight, Heart, BrainCircuit } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { getFamilias, getFamiliasStats, registrarFamilia, darAltaFamilia, darProrrogaFamilia } from "@/services/api"
+import type { FamiliaPayload } from "@/services/api"
+import { Loader2, PlusCircle } from "lucide-react"
+import { getSessionUser } from "@/lib/auth"
 
-type NeedPriority = "urgent" | "important" | "normal"
+export default function FamiliasPage() {
+  const [familias, setFamilias] = useState<any[]>([])
+  const [stats, setStats] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [sedeActiva, setSedeActiva] = useState<string>("cdmx")
+  
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [form, setForm] = useState<FamiliaPayload>({
+    sede: "cdmx",
+    numero_adultos: 1,
+    numero_ninos: 0,
+    dias_estancia_est: 7,
+    habitacion: "",
+    paciente_edad: undefined,
+    paciente_referencia: "",
+    necesidades_especiales: ""
+  })
 
-interface FamilyNeed {
-    id: string
-    description: string
-    priority: NeedPriority
-    time?: string
-}
-
-interface Family {
-    id: string
-    name: string
-    members: number
-    children: number
-    room: string
-    checkInDate: string
-    stayDuration: string
-    hospital: string
-    childPatient: string
-    childAge: string
-    needs: FamilyNeed[]
-    contactPhone: string
-    contactEmail: string
-    notes?: string
-}
-
-const familiesData: Family[] = [
-    {
-        id: "1",
-        name: "Martinez Family",
-        members: 4,
-        children: 2,
-        room: "204",
-        checkInDate: "March 28, 2026",
-        stayDuration: "7 days",
-        hospital: "Children&apos;s Hospital",
-        childPatient: "Sofia",
-        childAge: "5 years",
-        needs: [
-            {
-                id: "n1",
-                description: "Transport to hospital at 10 AM",
-                priority: "urgent",
-                time: "10:00 AM",
-            },
-            {
-                id: "n2",
-                description: "Spanish language support needed",
-                priority: "important",
-            },
-        ],
-        contactPhone: "(555) 123-4567",
-        contactEmail: "martinez.fam@email.com",
-        notes: "Dad works remotely during day",
-    },
-    {
-        id: "2",
-        name: "Thompson Family",
-        members: 3,
-        children: 1,
-        room: "108",
-        checkInDate: "March 21, 2026",
-        stayDuration: "14 days",
-        hospital: "St. Mary&apos;s Medical",
-        childPatient: "James",
-        childAge: "8 years",
-        needs: [
-            {
-                id: "n3",
-                description: "Gluten-free meal requirements",
-                priority: "important",
-            },
-        ],
-        contactPhone: "(555) 234-5678",
-        contactEmail: "thompson.j@email.com",
-        notes: "Checking out tomorrow",
-    },
-    {
-        id: "3",
-        name: "Chen Family",
-        members: 5,
-        children: 3,
-        room: "302",
-        checkInDate: "April 1, 2026",
-        stayDuration: "3 days",
-        hospital: "Children&apos;s Hospital",
-        childPatient: "Lily",
-        childAge: "3 years",
-        needs: [
-            {
-                id: "n4",
-                description: "Requires special baby formula (hypoallergenic)",
-                priority: "urgent",
-            },
-            {
-                id: "n5",
-                description: "Extra crib needed for infant sibling",
-                priority: "important",
-            },
-            {
-                id: "n6",
-                description: "Mandarin interpreter for medical appointments",
-                priority: "normal",
-            },
-        ],
-        contactPhone: "(555) 345-6789",
-        contactEmail: "chen.family@email.com",
-    },
-    {
-        id: "4",
-        name: "Williams Family",
-        members: 2,
-        children: 1,
-        room: "115",
-        checkInDate: "March 15, 2026",
-        stayDuration: "20 days",
-        hospital: "University Medical Center",
-        childPatient: "Emma",
-        childAge: "12 years",
-        needs: [
-            {
-                id: "n7",
-                description: "Quiet room preferred (child sensitive to noise)",
-                priority: "normal",
-            },
-        ],
-        contactPhone: "(555) 456-7890",
-        contactEmail: "williams.e@email.com",
-        notes: "Child was discharged, departing tomorrow",
-    },
-    {
-        id: "5",
-        name: "Anderson Family",
-        members: 3,
-        children: 1,
-        room: "201",
-        checkInDate: "April 2, 2026",
-        stayDuration: "2 days",
-        hospital: "Children&apos;s Hospital",
-        childPatient: "Noah",
-        childAge: "6 years",
-        needs: [
-            {
-                id: "n8",
-                description: "Wheelchair accessible transport needed",
-                priority: "urgent",
-                time: "2:00 PM",
-            },
-            {
-                id: "n9",
-                description: "Dietary restrictions: Vegetarian",
-                priority: "normal",
-            },
-        ],
-        contactPhone: "(555) 567-8901",
-        contactEmail: "anderson.fam@email.com",
-    },
-    {
-        id: "6",
-        name: "Garcia Family",
-        members: 4,
-        children: 2,
-        room: "310",
-        checkInDate: "April 3, 2026",
-        stayDuration: "1 day",
-        hospital: "St. Mary&apos;s Medical",
-        childPatient: "Miguel",
-        childAge: "10 years",
-        needs: [],
-        contactPhone: "(555) 678-9012",
-        contactEmail: "garcia.m@email.com",
-        notes: "First-time stay, orientation completed",
-    },
-]
-
-function getNeedBadge(priority: NeedPriority) {
-    switch (priority) {
-        case "urgent":
-            return (
-                <Badge className="bg-[#DB0007]/10 text-[#DB0007] hover:bg-[#DB0007]/10 border border-[#DB0007]/30 text-xs">
-                    Urgent
-                </Badge>
-            )
-        case "important":
-            return (
-                <Badge className="bg-[#FFBC0D]/20 text-[#9A7500] hover:bg-[#FFBC0D]/20 border border-[#FFBC0D]/40 text-xs">
-                    Important
-                </Badge>
-            )
-        case "normal":
-            return (
-                <Badge variant="secondary" className="text-xs">
-                    Normal
-                </Badge>
-            )
+  // Cargar datos
+  const loadData = async (sede: string) => {
+    try {
+      setLoading(true)
+      const [fData, sData] = await Promise.all([
+        getFamilias(sede),
+        getFamiliasStats(sede)
+      ])
+      setFamilias(fData)
+      setStats(sData)
+    } catch (err: any) {
+      setError(err.message || "Error al cargar familias")
+    } finally {
+      setLoading(false)
     }
-}
+  }
 
-export default function FamiliesPage() {
-    const [searchQuery, setSearchQuery] = useState("")
+  useEffect(() => { 
+    const user = getSessionUser()
+    const sedeUser = user?.sede || "cdmx"
+    setSedeActiva(sedeUser)
+    
+    // El formulario también se pre-llena con la sede del admin
+    setForm(prev => ({...prev, sede: sedeUser}))
+    
+    loadData(sedeUser) 
+  }, [])
 
-    const filteredFamilies = familiesData.filter((family) =>
-        family.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-
-    const stats = {
-        totalFamilies: familiesData.length,
-        totalMembers: familiesData.reduce((sum, f) => sum + f.members, 0),
-        urgentNeeds: familiesData.flatMap((f) => f.needs).filter((n) => n.priority === "urgent")
-            .length,
-        roomsOccupied: familiesData.length,
+  // Alta de familia
+  const handleDarAlta = async (id: string) => {
+    if (!confirm("¿Confirmar alta de esta familia?")) return
+    try {
+      await darAltaFamilia(id)
+      loadData(sedeActiva)
+    } catch (err: any) {
+      alert("Error al dar de alta: " + err.message)
     }
+  }
 
-    return (
-        <div className="flex flex-col gap-8">
-            {/* Page Header */}
-            <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                    <h1 className="text-3xl font-bold tracking-tight">Families</h1>
-                    <Button className="bg-[#DB0007] hover:bg-[#DB0007]/90">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Register Family
-                    </Button>
-                </div>
-                <p className="text-muted-foreground">
-                    Manage families currently staying at the Ronald McDonald House.
-                </p>
-            </div>
+  // Dar Prórroga
+  const handleProrroga = async (id: string) => {
+    try {
+      await darProrrogaFamilia(id)
+      loadData(sedeActiva)
+    } catch (err: any) {
+      alert("Error al dar prórroga: " + err.message)
+    }
+  }
 
-            {/* Quick Stats */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <Card className="shadow-sm border-border/50">
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-muted-foreground">Families Staying</p>
-                                <p className="text-2xl font-bold">{stats.totalFamilies}</p>
-                            </div>
-                            <div className="h-10 w-10 rounded-lg bg-[#DB0007]/10 flex items-center justify-center">
-                                <Home className="h-5 w-5 text-[#DB0007]" />
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="shadow-sm border-border/50">
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-muted-foreground">Total Guests</p>
-                                <p className="text-2xl font-bold">{stats.totalMembers}</p>
-                            </div>
-                            <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                                <Users className="h-5 w-5 text-blue-600" />
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="shadow-sm border-border/50">
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-muted-foreground">Urgent Needs</p>
-                                <p className="text-2xl font-bold text-[#DB0007]">{stats.urgentNeeds}</p>
-                            </div>
-                            <div className="h-10 w-10 rounded-lg bg-[#FFBC0D]/20 flex items-center justify-center">
-                                <AlertCircle className="h-5 w-5 text-[#FFBC0D]" />
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="shadow-sm border-border/50">
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-muted-foreground">Rooms Occupied</p>
-                                <p className="text-2xl font-bold">{stats.roomsOccupied}/24</p>
-                            </div>
-                            <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
-                                <Home className="h-5 w-5 text-green-600" />
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+  // Registrar nueva familia
+  const handleRegistrar = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      await registrarFamilia(form)
+      setIsModalOpen(false)
+      loadData(sedeActiva)
+      // reset form
+      setForm({
+        sede: sedeActiva, numero_adultos: 1, numero_ninos: 0, dias_estancia_est: 7,
+        habitacion: "", paciente_edad: undefined, paciente_referencia: "", necesidades_especiales: ""
+      })
+    } catch (err: any) {
+      alert("Error al registrar: " + err.message)
+    }
+  }
 
-            {/* Search and Filter */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Search families..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9"
-                    />
-                </div>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="gap-2">
-                            <Filter className="h-4 w-4" />
-                            Filter
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Filter by</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem>All Families</DropdownMenuItem>
-                        <DropdownMenuItem>Has Urgent Needs</DropdownMenuItem>
-                        <DropdownMenuItem>New Check-ins (Today)</DropdownMenuItem>
-                        <DropdownMenuItem>Checking Out Soon</DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
+  // Variables para la UI calculadas
+  const ocupacionReal = stats ? stats.total_adultos + stats.total_ninos : 0
+  const OCUPACION_BASE = 50 // Same as backend
+  const multiplicador = Math.max(1, ocupacionReal / OCUPACION_BASE).toFixed(2)
 
-            {/* Families Grid */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredFamilies.map((family) => (
-                    <Card
-                        key={family.id}
-                        className="shadow-sm border-border/50 hover:shadow-md transition-shadow"
-                    >
-                        <CardHeader className="pb-3">
-                            <div className="flex items-start justify-between">
-                                <div className="flex items-center gap-3">
-                                    <Avatar className="h-11 w-11 border-2 border-[#DB0007]/20">
-                                        <AvatarFallback className="bg-[#DB0007]/10 text-[#DB0007] font-semibold">
-                                            {family.name
-                                                .split(" ")[0]
-                                                .slice(0, 2)
-                                                .toUpperCase()}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                        <CardTitle className="text-base">{family.name}</CardTitle>
-                                        <CardDescription className="flex items-center gap-1.5">
-                                            <Home className="h-3 w-3" />
-                                            Room {family.room}
-                                        </CardDescription>
-                                    </div>
-                                </div>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                                            <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                                        <DropdownMenuItem>Edit Information</DropdownMenuItem>
-                                        <DropdownMenuItem>Add Need</DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem className="text-[#DB0007]">
-                                            Process Check-Out
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {/* Family Info */}
-                            <div className="grid grid-cols-2 gap-3 text-sm">
-                                <div className="flex items-center gap-2">
-                                    <Users className="h-4 w-4 text-muted-foreground" />
-                                    <span>{family.members} members</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Baby className="h-4 w-4 text-muted-foreground" />
-                                    <span>{family.children} children</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Clock className="h-4 w-4 text-muted-foreground" />
-                                    <span>{family.stayDuration}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Heart className="h-4 w-4 text-[#DB0007]" />
-                                    <span className="truncate">{family.childPatient}, {family.childAge}</span>
-                                </div>
-                            </div>
-
-                            <Separator />
-
-                            {/* Needs Summary */}
-                            <div>
-                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                                    Needs Summary
-                                </p>
-                                {family.needs.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground italic">
-                                        No special needs recorded
-                                    </p>
-                                ) : (
-                                    <div className="space-y-2">
-                                        {family.needs.slice(0, 2).map((need) => (
-                                            <div
-                                                key={need.id}
-                                                className="flex items-start gap-2 text-sm"
-                                            >
-                                                {need.priority === "urgent" && need.time ? (
-                                                    <Car className="h-4 w-4 text-[#DB0007] shrink-0 mt-0.5" />
-                                                ) : (
-                                                    <AlertCircle
-                                                        className={`h-4 w-4 shrink-0 mt-0.5 ${need.priority === "urgent"
-                                                                ? "text-[#DB0007]"
-                                                                : need.priority === "important"
-                                                                    ? "text-[#FFBC0D]"
-                                                                    : "text-muted-foreground"
-                                                            }`}
-                                                    />
-                                                )}
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="leading-tight">{need.description}</p>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        {getNeedBadge(need.priority)}
-                                                        {need.time && (
-                                                            <span className="text-xs text-muted-foreground">
-                                                                {need.time}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                        {family.needs.length > 2 && (
-                                            <p className="text-xs text-muted-foreground">
-                                                +{family.needs.length - 2} more needs
-                                            </p>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-
-                            <Separator />
-
-                            {/* Contact */}
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                        <Phone className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                        <Mail className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                                <Button variant="outline" size="sm">
-                                    View Profile
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
-
-            {/* Empty State */}
-            {filteredFamilies.length === 0 && (
-                <Card className="shadow-sm border-border/50">
-                    <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                        <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                            <Users className="h-8 w-8 text-muted-foreground" />
-                        </div>
-                        <h3 className="font-semibold text-lg mb-1">No Families Found</h3>
-                        <p className="text-sm text-muted-foreground max-w-sm">
-                            No families match your search criteria. Try adjusting your search
-                            or register a new family.
-                        </p>
-                    </CardContent>
-                </Card>
-            )}
+  return (
+    <div className="space-y-6 max-w-6xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+            Gestión de Familias
+            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Operación Viva</Badge>
+          </h1>
+          <p className="text-slate-500 mt-1 text-sm">
+            Las familias registradas aquí alimentan el contexto en tiempo real para el motor predictivo de CareForecast.
+          </p>
         </div>
-    )
+        <Button onClick={() => setIsModalOpen(true)} className="bg-[#DA291C] hover:bg-[#b8221a] text-white">
+          <Plus className="mr-2 h-4 w-4" /> Ingresar Familia
+        </Button>
+      </div>
+
+      {/* Stats Cards */}
+      {stats && (
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card className="border-l-4 border-l-blue-500">
+            <CardContent className="p-4 flex gap-4 items-center">
+              <div className="h-10 w-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
+                <BedDouble className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-500">Familias Activas</p>
+                <p className="text-2xl font-bold text-slate-900">{stats.total_activas}</p>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-l-4 border-l-emerald-500">
+            <CardContent className="p-4 flex gap-4 items-center">
+              <div className="h-10 w-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600">
+                <UsersIcon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-500">Ocupación Total</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold text-slate-900">{ocupacionReal} <span className="text-sm font-normal text-slate-500">pax</span></p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-md bg-gradient-to-br from-purple-50 to-indigo-50 md:col-span-2 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-5">
+               <BrainCircuit className="w-32 h-32" />
+            </div>
+            <CardContent className="p-4 flex items-center justify-between relative z-10">
+              <div className="flex gap-4 items-center">
+                <div className="h-12 w-12 bg-white/60 backdrop-blur-sm rounded-xl border border-white flex items-center justify-center text-purple-600 shadow-sm">
+                  <BrainCircuit className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-purple-900/80 mb-1 tracking-tight">Análisis Operativo CareForecast</p>
+                  <p className="text-sm leading-snug text-slate-700">
+                    Nuestra IA detecta un nivel de ocupación equivalente al <strong className="text-purple-700 font-bold bg-white/50 px-1 py-0.5 rounded">{Math.round(parseFloat(multiplicador) * 100)}%</strong> de la capacidad proyectada. 
+                    Multiplicador exponencial aplicado al estrés de inventario.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Lista de Familias */}
+      <h2 className="text-lg font-semibold mt-8 mb-2">Familias en Sede ({sedeActiva.toUpperCase()})</h2>
+      
+      {loading ? (
+        <div className="flex justify-center p-12">
+          <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+        </div>
+      ) : familias.length === 0 ? (
+        <div className="text-center p-12 border border-dashed rounded-xl border-slate-300 bg-white shadow-sm">
+          <Users className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+          <p className="text-slate-500 font-medium">No hay familias ingresadas en este momento.</p>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {familias.map((f) => (
+            <Card key={f.id} className="border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200 relative overflow-hidden group">
+              <div className="absolute top-0 left-0 w-1 h-full bg-[#DA291C]" />
+              <CardContent className="p-5">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex-1 min-w-0 pr-3">
+                    <h3 className="font-semibold text-slate-900 truncate" title={f.paciente_referencia || 'Familia s/n'}>
+                      Fam: {f.paciente_referencia || "Paciente No Reg."}
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                      <BedDouble className="h-3 w-3 flex-shrink-0" />
+                      <span className="truncate">Hab: {f.habitacion || "Asignar"}</span>
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="flex-shrink-0 bg-orange-50 text-orange-700 border-orange-200 font-medium tracking-tight">
+                    {f.dias_estancia_est} d. est
+                  </Badge>
+                </div>
+                
+                <div className="flex justify-between items-center text-sm py-3 border-y border-slate-100 mb-4 bg-slate-50/50 -mx-5 px-5">
+                  <div className="flex items-center gap-1.5 text-slate-600">
+                    <UserPlus className="h-4 w-4 text-slate-400" />
+                    <span>Adultos: <strong className="text-slate-900">{f.numero_adultos}</strong></span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-slate-600">
+                    <Heart className="h-4 w-4 text-slate-400" />
+                    <span>Niños: <strong className="text-slate-900">{f.numero_ninos}</strong></span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center bg-slate-50/50 -mx-5 -mb-5 px-5 py-3 border-t border-slate-100">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase font-semibold text-slate-400">Ingreso</span>
+                    <span className="text-xs text-slate-600">{new Date(f.fecha_ingreso).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleProrroga(f.id)} className="h-8 text-xs font-medium text-slate-600 hover:text-purple-700 hover:bg-purple-50 border-slate-200">
+                      <PlusCircle className="h-3.5 w-3.5 mr-1" /> Prórroga
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDarAlta(f.id)} className="h-8 text-xs font-medium text-slate-600 hover:text-[#DA291C] hover:bg-red-50">
+                      Dar de alta <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Modal Ingreso */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-slate-900">Ingresar Familia</h2>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">×</button>
+            </div>
+            <form onSubmit={handleRegistrar} className="p-6 space-y-4">
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Nombre Paciente (Ref)</label>
+                  <input type="text" required value={form.paciente_referencia} onChange={e => setForm({...form, paciente_referencia: e.target.value})} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#DA291C] outline-none" placeholder="Juan Pérez" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Edad Paciente</label>
+                  <input type="number" value={form.paciente_edad || ''} onChange={e => setForm({...form, paciente_edad: parseInt(e.target.value) || undefined})} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#DA291C] outline-none" placeholder="10" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4 border-y border-slate-100 py-4 my-2">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Adultos</label>
+                  <input type="number" min="1" required value={form.numero_adultos} onChange={e => setForm({...form, numero_adultos: parseInt(e.target.value) || 1})} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#DA291C] outline-none" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Niños</label>
+                  <input type="number" min="0" required value={form.numero_ninos} onChange={e => setForm({...form, numero_ninos: parseInt(e.target.value) || 0})} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#DA291C] outline-none" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Días Est</label>
+                  <input type="number" min="1" required value={form.dias_estancia_est} onChange={e => setForm({...form, dias_estancia_est: parseInt(e.target.value) || 7})} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#DA291C] outline-none" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Habitación</label>
+                  <input type="text" value={form.habitacion} onChange={e => setForm({...form, habitacion: e.target.value})} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#DA291C] outline-none" placeholder="B12" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Sede</label>
+                  <select value={form.sede} onChange={e => setForm({...form, sede: e.target.value})} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#DA291C] outline-none bg-white">
+                    <option value="cdmx">CDMX</option>
+                    <option value="puebla">Puebla</option>
+                    <option value="edomex">Estado de México</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
+                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+                <Button type="submit" className="bg-[#DA291C] hover:bg-[#b8221a] text-white">Salvar Ingreso</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+    </div>
+  )
 }

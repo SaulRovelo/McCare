@@ -16,7 +16,7 @@ const historialDonaciones = [
     cantidad: 50,
     familias: 50,
     categoria: "Médico",
-    monto: "$2,500",
+    monto: "2,500 MXN",
   },
   {
     item: "Leche Maternizada Etapa 1",
@@ -25,7 +25,7 @@ const historialDonaciones = [
     cantidad: 120,
     familias: 30,
     categoria: "Alimentos",
-    monto: "$1,800",
+    monto: "1,800 MXN",
   },
   {
     item: "Pañales Prematuro (Caja)",
@@ -34,7 +34,7 @@ const historialDonaciones = [
     cantidad: 80,
     familias: 40,
     categoria: "Cuidado",
-    monto: "$3,200",
+    monto: "3,200 MXN",
   },
   {
     item: "Fondo General McCare",
@@ -43,7 +43,7 @@ const historialDonaciones = [
     cantidad: 1,
     familias: 100,
     categoria: "General",
-    monto: "$10,000",
+    monto: "10,000 MXN",
   },
 ]
 

@@ -20,8 +20,8 @@ export function Navigation() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-primary">
-            <Heart className="size-5 text-primary-foreground" />
+          <div className="flex size-9 items-center justify-center rounded-lg bg-white overflow-hidden p-0.5">
+            <img src="https://media.licdn.com/dms/image/v2/D560BAQG41_59u7h_FA/company-logo_200_200/B56ZnW1aRZJ4AI-/0/1760245950068/ronaldmcdonaldhouse_logo?e=2147483647&v=beta&t=pIyVgnb9Rnzy78fFMw-jJnD_MivvXP0u-aS_IbJh6SE" alt="McCare Logo" className="w-full h-full object-contain" />
           </div>
           <span className="text-xl font-bold tracking-tight text-foreground">
             McCare

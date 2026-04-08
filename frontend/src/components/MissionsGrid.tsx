@@ -27,6 +27,37 @@ const categoryImages: Record<string, string> = {
   "default":    "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
 }
 
+// ── Imágenes personalizadas por nombre exacto de Misión (Insumo) ─────────────
+const itemImages: Record<string, string> = {
+  "Fórmula Infantil L1":         "https://farmaciacoyoacan.com/cdn/shop/files/7501058623188_01.jpg?v=1723703269",
+  "Fórmula Láctea Etapa 1":      "https://www.movil.farmaciasguadalajara.com/wcsstore/FGCAS/wcs/products/1246763_A_1280_AL.jpg",
+  "Leche Entera 1L":             "https://cdn-bm.aktiosdigitalservices.com/tol/bm/media/product/img/700x700/A76411_00.jpg?t=20260128040006",
+  "Papilla de Frutas":           "https://www.recetasparamibebe.com/wp-content/uploads/2023/11/Receta-papilla-frutas-yogur-galletas.jpg",
+  "Pañales RN":                  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQQgl1JNhPgPCtQ90vWPrfUEk1icRNb1QYonA&s",
+  "Pañales Etapa 3":             "https://www.costco.com.mx/medias/sys_master/products/h8a/h25/192116155940894.jpg",
+  "Pañales Etapa 4":             "https://hebmx.vtexassets.com/arquivos/ids/649849-800-800?v=638823916793600000&width=800&height=800&aspect=true",
+  "Suero Oral (Pediátrico)":     "https://farmacia-frias.com/37623-home_default/bi-oralsuero-sabor-fresa-2-x-330-ml.jpg",
+  "Suero Oral":                  "https://www.ministeriodesalud.go.cr/images/imagenesms/2022/Prensa/img_electrolit.png",
+  "Paracetamol Gotas":           "https://www.movil.farmaciasguadalajara.com/wcsstore/FGCAS/wcs/products/1420976_A_1280_AL.jpg",
+  "Jabón Neutro":                "https://surtace.mayoreoenlinea.mx/cdn/shop/products/1_1.jpg?v=1700064595",
+  "Toallas Húmedas Pqte":        "https://i5.walmartimages.com.mx/gr/images/product-images/img_large/00750611068452L1.jpg?odnHeight=612&odnWidth=612&odnBg=FFFFFF",
+  "Toallas Húmedas (Paquete)":   "https://arteli.vtexassets.com/arquivos/ids/268053-800-auto?v=638853479232670000&width=800&height=auto&aspect=true",
+  "Papillas Surtidas":           "https://tb-static.uber.com/prod/image-proc/processed_images/487a91487f5305a689182267df2a0041/b4665c191b34baf3d0e0fa45dfdd3d1d.jpeg",
+  "Biberones 8oz":               "https://i5-mx.walmartimages.com/gr/images/product-images/img_large/00750102751360L.jpg",
+  "Sillas de Ruedas Pediátricas":"https://medwalk.mx/wp-content/uploads/2023/05/SILLA-INFANTIL-SP3602E.png",
+  "Juguetes Didácticos":         "https://http2.mlstatic.com/D_NQ_NP_992637-MLA99945687957_112025-O.webp",
+  "Nutrición Parenteral Esp":    "https://bexen.com/wp-content/uploads/Comparativa-dispositivos-nutricion-enteral.webp",
+  "Nutrición Parenteral Esp.":   "https://bexen.com/wp-content/uploads/Comparativa-dispositivos-nutricion-enteral.webp",
+  "Apoyo de Transporte (Boletos)":"https://printpv.com/web/image/product.image/106/image_1024/Boletos?unique=c6f652c",
+  "Despensas Comunitarias":       "https://www.caritas.org.mx/wp-content/uploads/2020/07/que-lleva-una-despensa-basica.jpg",
+  "Kits de Aseo Personal":        "https://detqhtv6m6lzl.cloudfront.net/HCLContenido/producto/FullImage/7502263760347-01.jpg",
+  "Cobijas Térmicas":             "https://m.media-amazon.com/images/I/91l8auHSvpL.jpg",
+  "Snacks Nutricionales":         "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ2sB8qiRmg5ZrO92-Sg-9PDpkuuM_oyR1Rlg&s",
+  "Gasa Estéril":                 "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSOsodKJv_jlLHqUrmnG1nE6Nltr0WGYrbV-w&s",
+  "Kit Pediátrico Respiratorio":  "https://http2.mlstatic.com/D_NQ_NP_904065-MLM92253960516_092025-O.webp",
+  "Colchonetas Extra":            "https://resources.sears.com.mx/medios-plazavip/t1/1719343475BETADREAMSjpg?scale=500&qlty=75"
+}
+
 const SEDES = [
   { id: "cdmx",   name: "Casa CDMX" },
   { id: "puebla", name: "Casa Puebla" },
@@ -87,7 +118,7 @@ export function MissionsGrid() {
           id:            ins.id,
           title:         ins.nombre,
           emotion:       fallbackDescriptions[ins.categoria] ?? "Tu ayuda transforma la incertidumbre en esperanza para nuestras familias.",
-          image:         categoryImages[ins.categoria]       ?? categoryImages.default,
+          image:         itemImages[ins.nombre] ?? categoryImages[ins.categoria] ?? categoryImages.default,
           raised,
           goal,
           percent,
