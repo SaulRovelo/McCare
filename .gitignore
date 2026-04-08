@@ -9,6 +9,7 @@ __pycache__/
 env/
 venv/
 .venv/
+jajaton_env/
 
 # Node (para cuando instalemos frontend interactuando desde raíz)
 node_modules/
