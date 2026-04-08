@@ -117,7 +117,8 @@ export default function CareforecastPage() {
           timeLeftMinutes: rawDays * 24 * 60,
           status: item.estado_forecast || "estable",
           unitsNeeded: Math.ceil(unitsNeeded),
-          totalCost
+          totalCost,
+          currentStockValue: item.stock_actual * cost
         };
       });
 
@@ -272,59 +273,55 @@ export default function CareforecastPage() {
               return (
                 <Card key={supply.id} className="gap-0 border-2 border-red-200 overflow-hidden relative shadow-sm hover:shadow-md transition-shadow">
                   <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-red-600" />
-                  <CardContent className="p-5 pl-7">
+                  <CardContent className="p-4 pl-5">
                     {/* NIVEL 1: ESTADO Y HEADLINE */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
-                          <SupplyIcon className="w-5 h-5 text-red-600" />
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
+                          <SupplyIcon className="w-4 h-4 text-red-600" />
                         </div>
                         <div>
-                          <p className="text-slate-900 leading-tight" style={{ fontSize: "1.05rem", fontWeight: 700 }}>{supply.name}</p>
-                          <p className="text-slate-400" style={{ fontSize: "0.80rem" }}>{supply.category}</p>
+                          <p className="text-slate-900 leading-tight" style={{ fontSize: "0.95rem", fontWeight: 700 }}>{supply.name}</p>
+                          <p className="text-slate-400" style={{ fontSize: "0.75rem" }}>{supply.category}</p>
                         </div>
                       </div>
-                      <Badge className="bg-red-600 hover:bg-red-700 text-white border-transparent shadow-[0_0_10px_rgba(220,38,38,0.2)]">
-                        <Flame className="w-3.5 h-3.5 mr-1" />
+                      <Badge className="bg-red-600 hover:bg-red-700 text-white border-transparent shadow-sm px-1.5 py-0.5" style={{ fontSize: "0.65rem" }}>
+                        <Flame className="w-3 h-3 mr-1" />
                         CRÍTICO
                       </Badge>
                     </div>
 
                     {/* NIVEL 2: DECISIÓN (IMPACTO Y COSTO PRINCIPAL) */}
-                    <div className="bg-gradient-to-br from-red-50 to-rose-50/50 rounded-xl border border-red-100/60 p-4 text-center my-4">
-                       <p className="text-red-700 font-black text-[1.4rem] tracking-tight mb-2 drop-shadow-sm">
+                    <div className="bg-gradient-to-br from-red-50 to-rose-50/50 rounded-lg border border-red-100/60 p-3 text-center mb-3">
+                       <p className="text-red-700 font-extrabold text-lg tracking-tight mb-2 drop-shadow-sm">
                           {supply.timeLeft}
                        </p>
-                       <div className="flex flex-col gap-1.5">
-                         <div className="flex justify-between items-center text-sm px-2">
-                           <span className="text-slate-500 font-medium">Cobertura requerida:</span>
+                       <div className="flex flex-col gap-1.5 mt-1">
+                         <div className="flex justify-between items-center text-xs px-1">
+                           <span className="text-slate-500 font-medium tracking-wide">Cobertura requerida:</span>
                            <span className="text-slate-900 font-bold bg-white px-2 py-0.5 rounded shadow-sm">{supply.unitsNeeded} {supply.unit}</span>
                          </div>
-                         <div className="flex justify-between items-center text-sm px-2">
-                           <span className="text-slate-500 font-medium">Inversión est:</span>
+                         <div className="flex justify-between items-center text-xs px-1">
+                           <span className="text-slate-500 font-medium tracking-wide">Inversión est:</span>
                            <span className="text-emerald-700 font-black bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded shadow-sm">
-                             ${supply.totalCost.toLocaleString('es-MX')} MXN
+                             {supply.totalCost.toLocaleString('es-MX')} MXN
                            </span>
                          </div>
                        </div>
                     </div>
 
                     {/* NIVEL 3: DATOS TÉCNICOS VISUALMENTE MENORES */}
-                    <div className="flex justify-between items-center px-3 mb-4 rounded-lg bg-slate-50 border border-slate-100 py-2">
-                        <p className="text-[0.7rem] uppercase text-slate-400 font-semibold tracking-wider">
+                    <div className="flex justify-between items-center px-3 mb-1 rounded-md bg-slate-50 border border-slate-100 py-1.5">
+                        <p className="text-[0.65rem] uppercase text-slate-500 font-semibold tracking-wider">
                           Stock: <span className="text-slate-800 font-bold">{supply.stock}</span> {supply.unit}
                         </p>
-                        <div className="h-4 w-px bg-slate-200"></div>
-                        <p className="text-[0.7rem] uppercase text-slate-400 font-semibold tracking-wider">
+                        <div className="h-3 w-px bg-slate-200"></div>
+                        <p className="text-[0.65rem] uppercase text-slate-500 font-semibold tracking-wider">
                           Ritmo: <span className="text-slate-800 font-bold">{supply.consumptionPerDay}</span> /día
                         </p>
                     </div>
 
-                    {/* NIVEL 4: ACCIÓN */}
-                    <Button className="w-full bg-[#DA291C] hover:bg-[#b8221a] text-white cursor-pointer h-[3rem] shadow-md hover:shadow-lg transition-all font-bold text-base rounded-xl">
-                      <Zap className="w-5 h-5 mr-2" />
-                      Solicitar Abastecimiento
-                    </Button>
+                    {/* NIVEL 4: ACCIÓN REMOVIDO A PETICIÓN DE USUARIO */}
                   </CardContent>
                 </Card>
               );
@@ -373,9 +370,9 @@ export default function CareforecastPage() {
                           <Badge className={cn("border-transparent text-white shrink-0 shadow-sm whitespace-nowrap px-2 px-x px-2", cfg.badgeBg)} style={{ fontSize: "0.6875rem", fontWeight: 700, minWidth: "4.5rem", justifyContent: "center" }}>
                             {supply.timeLeft}
                           </Badge>
-                          <div className="text-right shrink-0 w-16">
-                            <p className="text-slate-700" style={{ fontSize: "0.8125rem", fontWeight: 600 }}>{supply.stock}</p>
-                            <p className="text-slate-400" style={{ fontSize: "0.5625rem" }}>{supply.unit}</p>
+                          <div className="text-right shrink-0 min-w-[5rem]">
+                            <p className="text-emerald-700" style={{ fontSize: "0.8125rem", fontWeight: 700 }}>{(supply.currentStockValue || 0).toLocaleString('es-MX')}</p>
+                            <p className="text-slate-400" style={{ fontSize: "0.5625rem", fontWeight: 600 }}>MXN</p>
                           </div>
                         </div>
                       );
@@ -414,11 +411,11 @@ export default function CareforecastPage() {
                   <TableRow className="bg-slate-50/80 hover:bg-slate-50/80 border-b-2 border-slate-200">
                     <TableHead className="text-slate-600 font-bold" style={{ fontSize: "0.75rem" }}>Insumo</TableHead>
                     <TableHead className="text-slate-600 font-bold" style={{ fontSize: "0.75rem" }}>Estado</TableHead>
-                    <TableHead className="text-slate-600 font-bold text-right" style={{ fontSize: "0.75rem" }}>Stock Actual</TableHead>
+                    <TableHead className="text-slate-600 font-bold text-right" style={{ fontSize: "0.75rem" }}>Valor Stock</TableHead>
                     <TableHead className="text-slate-600 font-bold text-right" style={{ fontSize: "0.75rem" }}>Consumo/Día</TableHead>
                     <TableHead className="text-slate-600 font-bold text-center" style={{ fontSize: "0.75rem" }}>Tiempo Crítico (IA)</TableHead>
                     <TableHead className="text-slate-600 font-bold" style={{ fontSize: "0.75rem" }}>Fecha Agotamiento</TableHead>
-                    <TableHead className="text-slate-600 font-bold text-center" style={{ fontSize: "0.75rem" }}>Impacto</TableHead>
+                    <TableHead className="text-slate-600 font-bold text-center" style={{ fontSize: "0.75rem" }}>Inversión MXN</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -488,8 +485,14 @@ function SupplyTableRow({ supply }: { supply: any }) {
         </Badge>
       </TableCell>
       <TableCell className="text-right">
-        <span className="text-slate-900" style={{ fontSize: "0.9375rem", fontWeight: 700 }}>{supply.stock}</span>
-        <span className="text-slate-500 ml-1" style={{ fontSize: "0.6875rem", fontWeight: 500 }}>{supply.unit}</span>
+        <div className="flex flex-col items-end">
+          <span className="text-emerald-700" style={{ fontSize: "0.9375rem", fontWeight: 700 }}>
+            ${(supply.currentStockValue || 0).toLocaleString('es-MX')} MXN
+          </span>
+          <span className="text-slate-400" style={{ fontSize: "0.6875rem", fontWeight: 500 }}>
+            {supply.stock} {supply.unit}
+          </span>
+        </div>
       </TableCell>
       <TableCell className="text-right">
         <span className="text-slate-700" style={{ fontSize: "0.875rem", fontWeight: 600 }}>{supply.consumptionPerDay}</span>
@@ -504,8 +507,8 @@ function SupplyTableRow({ supply }: { supply: any }) {
         <span className="text-slate-600 font-medium" style={{ fontSize: "0.8125rem" }}>{supply.depletionDate}</span>
       </TableCell>
       <TableCell className="text-center">
-        <Badge variant="outline" className={cn(impact, "font-semibold bg-transparent")} style={{ fontSize: "0.6875rem" }}>
-          {supply.impactLevel}
+        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold shadow-sm whitespace-nowrap" style={{ fontSize: "0.75rem" }}>
+          ${supply.totalCost.toLocaleString('es-MX')} MXN
         </Badge>
       </TableCell>
     </TableRow>

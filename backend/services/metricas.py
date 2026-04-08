@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
 
-from database.models import MovimientoSQL
+from database.models import MovimientoSQL, InsumoSQL
 from backend.models.domain import (
     Insumo, AdminResumen, ImpactoResumen, ForecastResult, ImpactStory
 )
@@ -43,14 +43,14 @@ def calcular_cobertura_dias(stock_actual: int, consumo_estimado: float) -> float
 
 # ── Resumen Administrativo ────────────────────────────────────────────────────
 
-def obtener_resumen_admin(db: Session) -> AdminResumen:
+def obtener_resumen_admin(db: Session, sede: str = None) -> AdminResumen:
     """
     Calcula todos los KPIs operativos para el portal administrativo.
     Una sola llamada, todo calculado en backend.
     """
-    insumos_db = obtener_insumos(db)
+    insumos_db = obtener_insumos(db, sede=sede)
     insumos_pydantic = [Insumo.model_validate(i) for i in insumos_db]
-    predicciones = calcular_forecast(db)
+    predicciones = calcular_forecast(db, sede=sede)
     misiones = generar_misiones(insumos_pydantic)
 
     # Clasificación por estado de forecast
@@ -70,9 +70,12 @@ def obtener_resumen_admin(db: Session) -> AdminResumen:
 
     # Movimientos de las últimas 24 horas
     hace_24h = datetime.utcnow() - timedelta(hours=24)
-    movimientos_recientes = db.query(MovimientoSQL).filter(
+    q_movs = db.query(MovimientoSQL).join(InsumoSQL, MovimientoSQL.insumo_id == InsumoSQL.id).filter(
         MovimientoSQL.fecha >= hace_24h
-    ).count()
+    )
+    if sede:
+        q_movs = q_movs.filter(InsumoSQL.sede == sede)
+    movimientos_recientes = q_movs.count()
 
     # Porcentaje del catálogo en estado sano
     pct_sano = round((estables / total * 100), 1) if total > 0 else 0.0

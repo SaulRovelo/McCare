@@ -56,7 +56,7 @@ const impactMetrics: ImpactMetric[] = [
   },
   {
     label: "Family Savings",
-    value: "$3.7M",
+    value: "3.7M MXN",
     change: "+24%",
     trend: "up",
     icon: DollarSign,
@@ -69,7 +69,7 @@ const quarterlyReports: QuarterlyReport[] = [
     period: "Q1 2026",
     status: "published",
     familiesHelped: 312,
-    totalDonations: "$125,000",
+    totalDonations: "125,000 MXN",
     highlights: [
       "Expanded family nutrition program to 3 new locations",
       "Launched sibling support initiative",
@@ -81,7 +81,7 @@ const quarterlyReports: QuarterlyReport[] = [
     period: "Q4 2025",
     status: "published",
     familiesHelped: 298,
-    totalDonations: "$118,000",
+    totalDonations: "118,000 MXN",
     highlights: [
       "Holiday care package distribution to 500+ families",
       "Completed kitchen renovation at Chicago House",
@@ -93,7 +93,7 @@ const quarterlyReports: QuarterlyReport[] = [
     period: "Q3 2025",
     status: "published",
     familiesHelped: 285,
-    totalDonations: "$105,000",
+    totalDonations: "105,000 MXN",
     highlights: [
       "Back-to-school program for 150 children",
       "Medical transport fund exceeded targets",

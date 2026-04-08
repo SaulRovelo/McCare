@@ -47,7 +47,7 @@ const missionEvidence: MissionEvidence[] = [
       { label: "Families Supported", value: "127", change: "+23%" },
       { label: "Nights Provided", value: "3,810", change: "+18%" },
       { label: "Meals Served", value: "11,430", change: "+15%" },
-      { label: "Cost Savings for Families", value: "$571,500", change: "+21%" },
+      { label: "Cost Savings for Families", value: "571,500 MXN", change: "+21%" },
     ],
     beneficiaries: 127,
     summary: "This quarter, your contribution directly supported 127 families staying at the Chicago Ronald McDonald House, providing comfort during their children's medical treatments."

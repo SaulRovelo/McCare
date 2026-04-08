@@ -92,7 +92,7 @@ export default function PortalImpacto() {
                 </Badge>
                 <h1 className="text-balance text-2xl font-bold text-foreground sm:text-4xl lg:text-5xl">
                   {hasLoaded && resumen 
-                    ? `Actualmente cuidando a ${resumen.familias_actuales} familias`
+                    ? resumen.mensaje_hero_emocional
                     : "Nuestra Historia: Más allá de los números"}
                 </h1>
                 {hasLoaded && resumen && (
@@ -123,19 +123,34 @@ export default function PortalImpacto() {
                     index % 2 === 0 ? "lg:flex-row" : "lg:flex-row-reverse"
                   )}
                 >
-                  {/* Imagen (Placeholder dinámico) */}
+                  {/* Imagen Realista Dinámica */}
                   <div className="w-full lg:w-1/2">
-                    <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-muted shadow-lg border border-border/50">
-                      <div className={cn(
-                        "absolute inset-0 flex items-center justify-center bg-gradient-to-br",
-                        story.tipo_historia === 'rescate_critico'
-                          ? "from-rose-100 to-rose-50"
-                          : "from-amber-100 to-amber-50"
-                      )}>
-                        {story.tipo_historia === 'rescate_critico' 
-                          ? <Home className="h-16 w-16 text-rose-300" />
-                          : <Sparkles className="h-16 w-16 text-amber-300" />
+                    <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-muted shadow-lg border border-border/50 group">
+                      <img 
+                        src={
+                          story.tipo_historia === 'rescate_critico' 
+                            ? "https://images.unsplash.com/photo-1623707430616-d9f956bcac2b?auto=format&fit=crop&w=800&q=80" 
+                            : "https://images.unsplash.com/photo-1604599730009-fe273616197c?auto=format&fit=crop&w=800&q=80"
                         }
+                        alt={story.titulo}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      
+                      {/* Badge sobre la imagen */}
+                      <div className="absolute bottom-4 left-4">
+                         <div className={cn(
+                           "flex items-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-md shadow-sm border",
+                           story.tipo_historia === 'rescate_critico' 
+                             ? "bg-rose-500/20 text-rose-50 border-rose-500/30" 
+                             : "bg-amber-500/20 text-amber-50 border-amber-500/30"
+                         )}>
+                           {story.tipo_historia === 'rescate_critico' 
+                             ? <Home className="h-4 w-4" />
+                             : <Sparkles className="h-4 w-4" />
+                           }
+                           <span className="text-xs font-semibold">CareForecast IA</span>
+                         </div>
                       </div>
                     </div>
                   </div>
@@ -201,9 +216,9 @@ export default function PortalImpacto() {
                 size="lg"
                 className="gap-2 px-8 bg-[#FFBC0D] text-black hover:bg-[#E5A90B]"
               >
-                <Link href="/donar">
+                <Link href="/donante">
                   <Heart className="h-5 w-5" />
-                  Hacer una Donación General
+                  Ir a mi Portal de Donante
                 </Link>
               </Button>
             </div>
