@@ -1,218 +1,228 @@
-'use client';
-import { useEffect, useState, useCallback, useRef } from 'react';
-import Link from 'next/link';
-import { getImpactoResumen, getImpactStories, getMovimientosGlobales, resolverMision } from '@/services/api';
-import { Users, Home, Sparkles, Heart, ArrowRight } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import DonacionCongrats from '@/components/donor/DonacionCongrats';
-import { useSesionImpacto } from '@/components/donor/ImpactoSidebar';
-import { Navigation } from "@/components/Navigation";
-import { Footer } from "@/components/Footer";
+"use client"
 
-export default function PortalImpacto() {
-  const [resumen,    setResumen]    = useState<any>(null);
-  const [historias,  setHistorias]  = useState<any[]>([]);
-  const [hasLoaded,  setHasLoaded]  = useState(false);
+import {
+  Heart,
+  Star,
+  Home,
+  BedDouble,
+  Activity,
+  Utensils,
+  Users,
+  Car,
+  Building2,
+  Globe2,
+  HeartHandshake
+} from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Navigation } from "@/components/Navigation"
+import { Footer } from "@/components/Footer"
 
-  // Estado del congrats modal
-  const [congrats, setCongrats] = useState<{
-    nombre: string; familias: number; esCritico: boolean; hayMas: boolean;
-  } | null>(null);
-
-  const { registrarDonacion } = useSesionImpacto();
-  const ctaRef = useRef<HTMLDivElement>(null);
-
-  const fetchData = useCallback(async () => {
-    try {
-      const [res, his] = await Promise.all([
-        getImpactoResumen(),
-        getImpactStories(10), // Limitamos para el zigzag
-      ]);
-      setResumen(res);
-      setHistorias(his);
-      setHasLoaded(true);
-    } catch (e) { console.error(e); }
-  }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
-
-  const handleDonar = async (insumo_id: string, nombre: string) => {
-    const hist = historias.find((h: any) => h.insumo_id === insumo_id);
-    const consumo = hist?.consumo_estimado ?? 3;
-    const familiasImpacto = Math.max(1, Math.round(consumo * 7 / 3));
-
-    await resolverMision(insumo_id, consumo, 'publico');
-    registrarDonacion(familiasImpacto);
-
-    setCongrats({
-      nombre,
-      familias: familiasImpacto,
-      esCritico: hist?.tipo_historia === 'rescate_critico',
-      hayMas: historias.length > 1,
-    });
-
-    await fetchData();
-  };
-
-  const scrollToDonar = () => {
-    ctaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  };
-
+export default function ImpactoPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <>
       <Navigation />
 
-      {/* Modal post-donación */}
-      {congrats && (
-        <DonacionCongrats
-          nombre={congrats.nombre}
-          familias={congrats.familias}
-          esCritico={congrats.esCritico}
-          hayMasHistorias={congrats.hayMas}
-          onClose={() => setCongrats(null)}
-        />
-      )}
+      <main className="min-h-screen bg-slate-50 pb-20 pt-8">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
-      <main className="flex-1">
-        {/* Hero Section */}
-        <section className="relative overflow-hidden bg-gradient-to-b from-muted/50 to-background px-4 py-16 sm:py-24">
-          <div className="mx-auto max-w-7xl">
-            <div className="relative mx-auto aspect-[21/9] max-w-5xl overflow-hidden rounded-2xl bg-muted shadow-xl">
-              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/5 to-accent/10">
-                <div className="text-center">
-                  <Heart className="mx-auto h-16 w-16 text-primary/30" />
-                </div>
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/40 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10">
-                <Badge className="mb-3 bg-[#DB0007] text-white">
-                  Nuestra Misión
-                </Badge>
-                <h1 className="text-balance text-2xl font-bold text-foreground sm:text-4xl lg:text-5xl">
-                  {hasLoaded && resumen 
-                    ? `Actualmente cuidando a ${resumen.familias_actuales} familias`
-                    : "Nuestra Historia: Más allá de los números"}
-                </h1>
-                {hasLoaded && resumen && (
-                   <p className="mt-2 text-lg text-muted-foreground max-w-2xl">
-                     {resumen.familias_en_riesgo > 0 
-                      ? `${resumen.familias_en_riesgo} familias en riesgo inminente. Nuestro pronóstico nos ayuda a actuar antes de que sea tarde.` 
-                      : 'El inventario de nuestras casas opera dentro de márgenes seguros.'}
-                   </p>
-                )}
-              </div>
+          {/* ── HEADER DE IMPACTO ── */}
+          <div className="mb-16 text-center">
+            <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-[#DA291C]/20 bg-[#DA291C]/10 px-4 py-1.5 text-sm font-medium text-[#DA291C]">
+              <Heart className="h-4 w-4 fill-current" />
+              <span>Transparencia y Resultados</span>
             </div>
-          </div>
-        </section>
-
-        {/* Zigzag Stories dinámico desde API */}
-        <section className="px-4 py-16">
-          <div className="mx-auto max-w-6xl space-y-16 lg:space-y-24">
-            {!hasLoaded ? (
-               <div className="text-center text-muted-foreground py-12">Cargando historias de impacto...</div>
-            ) : historias.length === 0 ? (
-               <div className="text-center text-muted-foreground py-12">No hay historias críticas en este momento. ¡El inventario está seguro!</div>
-            ) : (
-              historias.map((story, index) => (
-                <div
-                  key={story.id}
-                  className={cn(
-                    "flex flex-col items-center gap-8 lg:gap-12",
-                    index % 2 === 0 ? "lg:flex-row" : "lg:flex-row-reverse"
-                  )}
-                >
-                  {/* Imagen (Placeholder dinámico) */}
-                  <div className="w-full lg:w-1/2">
-                    <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-muted shadow-lg border border-border/50">
-                      <div className={cn(
-                        "absolute inset-0 flex items-center justify-center bg-gradient-to-br",
-                        story.tipo_historia === 'rescate_critico'
-                          ? "from-rose-100 to-rose-50"
-                          : "from-amber-100 to-amber-50"
-                      )}>
-                        {story.tipo_historia === 'rescate_critico' 
-                          ? <Home className="h-16 w-16 text-rose-300" />
-                          : <Sparkles className="h-16 w-16 text-amber-300" />
-                        }
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Texto y Datos de la Historia */}
-                  <div className="w-full lg:w-1/2">
-                    <Badge variant="outline" className={cn(
-                      "mb-4",
-                      story.tipo_historia === 'rescate_critico' 
-                        ? "border-rose-200 text-rose-700 bg-rose-50" 
-                        : "border-amber-200 text-amber-700 bg-amber-50"
-                    )}>
-                      {story.tipo_historia === 'rescate_critico' ? 'Urgencia Crítica' : 'Prevención Inteligente'}
-                    </Badge>
-                    <h2 className="mb-4 text-2xl font-bold sm:text-3xl text-foreground">
-                      {story.titulo}
-                    </h2>
-                    <p className="text-lg leading-relaxed text-muted-foreground mb-6">
-                      {story.historia}
-                    </p>
-                    
-                    <div className="p-4 rounded-xl bg-slate-100/50 border border-slate-200 mb-6">
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="font-medium text-slate-700">Meta: {story.meta_cantidad} {story.unidad}</span>
-                        <span className="text-rose-600 font-bold">Faltan {story.faltante}</span>
-                      </div>
-                    </div>
-
-                    <Button 
-                      size="lg" 
-                      onClick={() => handleDonar(story.insumo_id, story.titulo)}
-                      className={cn(
-                        "gap-2 text-white shadow-md w-full sm:w-auto",
-                        story.tipo_historia === 'rescate_critico' 
-                          ? "bg-[#DB0007] hover:bg-red-800" 
-                          : "bg-[#FFBC0D] text-black hover:bg-yellow-500"
-                      )}
-                    >
-                      <Heart className="h-4 w-4" />
-                      Resolver esta misión
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-
-        {/* CTA Banner */}
-        <section ref={ctaRef} className="bg-[#DB0007] px-4 py-16 sm:py-20 mt-12">
-          <div className="mx-auto max-w-4xl text-center">
-            <Sparkles className="mx-auto mb-4 h-10 w-10 text-white/80" />
-            <h2 className="text-balance text-2xl font-bold text-white sm:text-4xl">
-              Únete a nuestra causa
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-white/90">
-              Cada donación, sin importar su tamaño, ayuda a mantener a una
-              familia cerca de su hijo cuando más lo necesita.
+            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
+              Reporte de Impacto Acumulado
+            </h1>
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-500">
+              Cifras oficiales al cierre de <strong className="text-slate-700">Diciembre 2025</strong>.
+              Gracias a nuestra red de apoyo, seguimos manteniendo a las familias cerca cuando más lo necesitan.
             </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Button
-                asChild
-                size="lg"
-                className="gap-2 px-8 bg-[#FFBC0D] text-black hover:bg-[#E5A90B]"
-              >
-                <Link href="/donar">
-                  <Heart className="h-5 w-5" />
-                  Hacer una Donación General
-                </Link>
-              </Button>
+          </div>
+
+          {/* ── HERO METRIC (El dato más importante) ── */}
+          <div className="mb-12 flex justify-center">
+            <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-8 py-12 text-center shadow-2xl sm:px-16 sm:py-16 w-full max-w-4xl">
+              <div className="absolute -right-10 -top-10 h-64 w-64 rounded-full bg-[#DA291C]/20 blur-3xl" />
+              <div className="absolute -bottom-10 -left-10 h-64 w-64 rounded-full bg-[#FFBC0D]/20 blur-3xl" />
+
+              <div className="relative z-10 flex flex-col items-center">
+                <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-white/10 backdrop-blur-md">
+                  <Star className="h-10 w-10 text-[#FFBC0D] fill-[#FFBC0D]" />
+                </div>
+                <span className="text-6xl font-black tracking-tight text-white sm:text-8xl">
+                  11,365
+                </span>
+                <h2 className="mt-4 text-xl font-medium uppercase tracking-widest text-slate-300 sm:text-2xl">
+                  Niños Apoyados en Total
+                </h2>
+              </div>
             </div>
           </div>
-        </section>
 
+          {/* ── GRID DE DISTRIBUCIÓN DE NIÑOS Y RED DE APOYO ── */}
+          <div className="mb-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {/* Niños en Casas */}
+            <Card className="border-0 shadow-sm ring-1 ring-slate-200 transition-all hover:shadow-md hover:ring-[#DA291C]/50">
+              <CardContent className="flex flex-col items-center p-8 text-center">
+                <div className="mb-4 rounded-full bg-red-50 p-4 text-[#DA291C]">
+                  <Home className="h-8 w-8" />
+                </div>
+                <span className="text-3xl font-bold text-slate-900">3,829</span>
+                <p className="mt-2 text-sm text-slate-500">Niños apoyados en <br />Casas Ronald McDonald</p>
+              </CardContent>
+            </Card>
+
+            {/* Niños en Salas */}
+            <Card className="border-0 shadow-sm ring-1 ring-slate-200 transition-all hover:shadow-md hover:ring-amber-500/50">
+              <CardContent className="flex flex-col items-center p-8 text-center">
+                <div className="mb-4 rounded-full bg-amber-50 p-4 text-amber-600">
+                  <BedDouble className="h-8 w-8" />
+                </div>
+                <span className="text-3xl font-bold text-slate-900">2,103</span>
+                <p className="mt-2 text-sm text-slate-500">Niños apoyados en <br />Salas Familiares</p>
+              </CardContent>
+            </Card>
+
+            {/* Otros Programas */}
+            <Card className="border-0 shadow-sm ring-1 ring-slate-200 transition-all hover:shadow-md hover:ring-blue-500/50">
+              <CardContent className="flex flex-col items-center p-8 text-center">
+                <div className="mb-4 rounded-full bg-blue-50 p-4 text-blue-600">
+                  <Activity className="h-8 w-8" />
+                </div>
+                <span className="text-3xl font-bold text-slate-900">5,433</span>
+                <p className="mt-2 text-sm text-slate-500">Niños apoyados en <br />Otros Programas</p>
+              </CardContent>
+            </Card>
+
+            {/* Voluntarios */}
+            <Card className="border-0 shadow-sm ring-1 ring-slate-200 transition-all hover:shadow-md hover:ring-emerald-500/50">
+              <CardContent className="flex flex-col items-center p-8 text-center">
+                <div className="mb-4 rounded-full bg-emerald-50 p-4 text-emerald-600">
+                  <Users className="h-8 w-8" />
+                </div>
+                <span className="text-3xl font-bold text-slate-900">2,567</span>
+                <p className="mt-2 text-sm text-slate-500">Voluntarios que <br />apoyaron los programas</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* ── SECCIÓN DOBLE: OCUPACIÓN Y LOGÍSTICA ── */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+
+            {/* Ocupación de Casas (Barras de progreso) */}
+            <Card className="border-0 shadow-sm ring-1 ring-slate-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <Home className="h-5 w-5 text-[#DA291C]" />
+                  Nivel de Ocupación por Casa
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+
+                {/* CDMX */}
+                <div>
+                  <div className="mb-2 flex items-center justify-between text-sm font-medium">
+                    <span className="text-slate-700">Casa CDMX</span>
+                    <span className="text-[#DA291C]">95%</span>
+                  </div>
+                  <div className="h-3 w-full overflow-hidden rounded-full bg-slate-100">
+                    <div className="h-full rounded-full bg-[#DA291C]" style={{ width: "95%" }} />
+                  </div>
+                </div>
+
+                {/* Puebla */}
+                <div>
+                  <div className="mb-2 flex items-center justify-between text-sm font-medium">
+                    <span className="text-slate-700">Casa Puebla</span>
+                    <span className="text-amber-500">80%</span>
+                  </div>
+                  <div className="h-3 w-full overflow-hidden rounded-full bg-slate-100">
+                    <div className="h-full rounded-full bg-amber-500" style={{ width: "80%" }} />
+                  </div>
+                </div>
+
+                {/* EdoMex */}
+                <div>
+                  <div className="mb-2 flex items-center justify-between text-sm font-medium">
+                    <span className="text-slate-700">Casa Estado de México</span>
+                    <span className="text-blue-500">50%</span>
+                  </div>
+                  <div className="h-3 w-full overflow-hidden rounded-full bg-slate-100">
+                    <div className="h-full rounded-full bg-blue-500" style={{ width: "50%" }} />
+                  </div>
+                </div>
+
+              </CardContent>
+            </Card>
+
+            {/* Logística y Operación (Grid interno 2x2) */}
+            <div className="grid grid-cols-2 gap-4">
+              <Card className="border-0 bg-orange-50/50 shadow-sm ring-1 ring-orange-100">
+                <CardContent className="flex flex-col justify-center p-6 text-center h-full">
+                  <Utensils className="mx-auto mb-3 h-6 w-6 text-orange-600" />
+                  <span className="text-2xl font-bold text-slate-900">173,717</span>
+                  <p className="mt-1 text-xs text-slate-600">Raciones de<br />comida servida</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 bg-indigo-50/50 shadow-sm ring-1 ring-indigo-100">
+                <CardContent className="flex flex-col justify-center p-6 text-center h-full">
+                  <Car className="mx-auto mb-3 h-6 w-6 text-indigo-600" />
+                  <span className="text-2xl font-bold text-slate-900">2,284</span>
+                  <p className="mt-1 text-xs text-slate-600">Viajes en rutas<br />a Hospitales</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 bg-rose-50/50 shadow-sm ring-1 ring-rose-100">
+                <CardContent className="flex flex-col justify-center p-6 text-center h-full">
+                  <HeartHandshake className="mx-auto mb-3 h-6 w-6 text-rose-600" />
+                  <span className="text-2xl font-bold text-slate-900">224</span>
+                  <p className="mt-1 text-xs text-slate-600">Donantes<br />activos</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 bg-teal-50/50 shadow-sm ring-1 ring-teal-100">
+                <CardContent className="flex flex-col justify-center p-6 text-center h-full">
+                  <Building2 className="mx-auto mb-3 h-6 w-6 text-teal-600" />
+                  <span className="text-2xl font-bold text-slate-900">29</span>
+                  <p className="mt-1 text-xs text-slate-600">Hospitales de donde<br />recibimos niños</p>
+                </CardContent>
+              </Card>
+            </div>
+
+          </div>
+
+          {/* ── ALCANCE GEOGRÁFICO ── */}
+          <div className="mt-6 overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200">
+            <div className="flex flex-col items-center justify-between gap-6 p-8 md:flex-row md:p-10">
+              <div className="flex items-center gap-6">
+                <div className="rounded-full bg-slate-100 p-4 text-slate-600">
+                  <Globe2 className="h-10 w-10" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-slate-900">Alcance Nacional e Internacional</h3>
+                  <p className="mt-1 text-slate-500">
+                    Recibimos a familias que viajan buscando esperanza y tratamiento.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-8 text-center md:text-right">
+                <div>
+                  <span className="block text-4xl font-black text-[#DA291C]">30</span>
+                  <span className="text-sm font-medium text-slate-500 uppercase tracking-wider">Estados de la República</span>
+                </div>
+                <div className="hidden w-px bg-slate-200 sm:block"></div>
+                <div>
+                  <span className="block text-4xl font-black text-[#DA291C]">52</span>
+                  <span className="text-sm font-medium text-slate-500 uppercase tracking-wider">Países</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </main>
-
       <Footer />
-    </div>
-  );
+    </>
+  )
 }
