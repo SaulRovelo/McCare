@@ -1,3 +1,4 @@
+
 'use client';
 /**
  * ForecastBarChart — Gráfica de barras horizontales CSS puras.

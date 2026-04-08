@@ -1,3 +1,4 @@
+
 "use client"
 
 import Link from "next/link"
@@ -22,6 +23,12 @@ const accionesRapidas = [
     description: "Gestionar existencias actuales",
     href: "/dashboard/inventario",
     icon: Package,
+  },
+  {
+    title: "Familias",
+    description: "Gestión de residentes y necesidades",
+    href: "/dashboard/familias",
+    icon: Users,
   },
   {
     title: "Donaciones",
@@ -83,7 +90,7 @@ export default function DashboardPage() {
   // Identificar la categoría peor perfilada
   const cats: Record<string, number> = {};
   forecastAlertas.forEach(f => cats[f.categoria] = (cats[f.categoria] || 0) + 1);
-  const peorCategoria = Object.entries(cats).sort((a,b) => b[1] - a[1])[0]?.[0] || "generales";
+  const peorCategoria = Object.entries(cats).sort((a, b) => b[1] - a[1])[0]?.[0] || "generales";
 
   const dataResumen = resumen || {
     estado_general: "optimo",
@@ -96,15 +103,15 @@ export default function DashboardPage() {
   }
 
   // Graceful degradation para Actividad
-  const historyToRender = movimientos.length > 0 
+  const historyToRender = movimientos.length > 0
     ? movimientos.map(m => ({
-        id: m.id,
-        type: m.tipo_movimiento === "entrada" ? "donation" : (m.tipo_movimiento === "ajuste" ? "milestone" : "alert"),
-        message: m.tipo_movimiento === "entrada" 
-          ? `Registro Entrada (+${m.cantidad}): ${m.observacion || 'Origen no especificado'}` 
-          : `${m.tipo_movimiento.toUpperCase()} (-${m.cantidad}): ${m.observacion || 'Operación de inventario'}`,
-        time: new Date(m.fecha).toLocaleDateString()
-      })) 
+      id: m.id,
+      type: m.tipo_movimiento === "entrada" ? "donation" : (m.tipo_movimiento === "ajuste" ? "milestone" : "alert"),
+      message: m.tipo_movimiento === "entrada"
+        ? `Registro Entrada (+${m.cantidad}): ${m.observacion || 'Origen no especificado'}`
+        : `${m.tipo_movimiento.toUpperCase()} (-${m.cantidad}): ${m.observacion || 'Operación de inventario'}`,
+      time: new Date(m.fecha).toLocaleDateString()
+    }))
     : actividadMock;
 
   return (
@@ -200,13 +207,12 @@ export default function DashboardPage() {
                   className="flex items-start gap-3 pb-4 border-b border-border/50 last:border-0 last:pb-0"
                 >
                   <div
-                    className={`mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                      actividad.type === "donation"
-                        ? "bg-green-100 text-green-600"
-                        : actividad.type === "alert"
+                    className={`mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${actividad.type === "donation"
+                      ? "bg-green-100 text-green-600"
+                      : actividad.type === "alert"
                         ? "bg-[#DB0007]/10 text-[#DB0007]"
                         : "bg-[#FFBC0D]/20 text-[#FFBC0D]"
-                    }`}
+                      }`}
                   >
                     {actividad.type === "donation" ? (
                       <Heart className="h-4 w-4" />
@@ -250,13 +256,13 @@ export default function DashboardPage() {
                   "Analizando datos de la plataforma..."
                 ) : countAlertas > 0 ? (
                   <>
-                    Se prevé que <span className="font-medium text-foreground">{countAlertas} insumos</span> alcancen un 
-                    nivel crítico o de atención a la brevedad. Los productos de la categoría <span className="font-medium uppercase">{peorCategoria}</span> muestran 
+                    Se prevé que <span className="font-medium text-foreground">{countAlertas} insumos</span> alcancen un
+                    nivel crítico o de atención a la brevedad. Los productos de la categoría <span className="font-medium uppercase">{peorCategoria}</span> muestran
                     alta urgencia derivada del comportamiento histórico de salidas.
                   </>
                 ) : (
                   <>
-                    Ningún escenario de abasto luce en riesgo crítico. El catálogo es proyectado de 
+                    Ningún escenario de abasto luce en riesgo crítico. El catálogo es proyectado de
                     manera <span className="font-medium text-foreground">estable</span> dentro de los flujos de distribución previstos.
                   </>
                 )}
