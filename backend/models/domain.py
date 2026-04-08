@@ -33,7 +33,7 @@ class MovimientoCreate(BaseModel):
     tipo_movimiento: Literal['entrada', 'salida', 'ajuste'] = Field(..., description="Solo permite entrada, salida o ajuste")
     cantidad: int = Field(..., gt=0, description="Debe ser mayor a 0 estrictamente")
     observacion: Optional[str] = Field(None, description="Motivo del movimiento o ajuste")
-    origen: Literal['interno', 'publico', 'corporativo'] = Field(
+    origen: Literal['interno', 'publico', 'corporativo', 'urgente'] = Field(
         'interno', description="Origen de la acción para trazabilidad"
     )
 
@@ -161,4 +161,44 @@ class ImpactStory(BaseModel):
     origen: Literal["operacion_actual", "forecast_predictivo"]
     confianza: Literal["alta", "media", "baja"]
     nivel_urgencia_relativa: float
-    consumo_estimado: float  # Expuesto para que el frontend calcule reabastecimiento sin llamada extra
+    consumo_estimado: float      # Para que el frontend calcule reabastecimiento sin llamada extra
+    # Campos para la UI pública (/impacto/page.tsx)
+    historia: str                # Alias legíble de `descripcion` (narrativa emocional)
+    meta_cantidad: int           # Unidades necesarias para cubrir 14 días (=capacidad_maxima)
+    unidad: str                  # "unidades" por defecto
+    faltante: str                # "X unidades" calculado en impacto.py
+
+
+# ── Schemas de Notificaciones ───────────────────────────────────────────────
+
+class NotificacionOut(BaseModel):
+    """Notificación del sistema para el panel administrativo."""
+    id: str
+    tipo: str                       # critico | urgente | atencion | info
+    insumo_id: Optional[str]
+    titulo: str
+    mensaje: str
+    leida: bool
+    fecha: datetime
+    insumo_nombre: Optional[str] = None  # Enriquecido por el endpoint
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ConfiguracionOut(BaseModel):
+    """Parámetro configurable del sistema."""
+    clave: str
+    valor: str
+    tipo: str
+    descripcion: Optional[str]
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SolicitudUrgenteOut(BaseModel):
+    """Respuesta del endpoint POST /api/misiones/urgente."""
+    movimiento_id: str
+    insumo_id: str
+    insumo_nombre: str
+    cantidad_reabastecida: int
+    stock_nuevo: int
+    notificacion_id: str
+    mensaje: str
