@@ -102,13 +102,13 @@ def obtener_forecast(limit: int = 20, sede: str = None, db: Session = Depends(ge
 # ── Admin ─────────────────────────────────────────────────────────────────────
 
 @api_router.get("/admin/resumen", response_model=AdminResumen, tags=["Admin"])
-def obtener_resumen_administrativo(db: Session = Depends(get_db)):
+def obtener_resumen_administrativo(sede: str = None, db: Session = Depends(get_db)):
     """
     KPIs ejecutivos calculados en backend para el portal admin.
     Incluye: estado general, insumos por categoría de riesgo, cobertura promedio,
     misiones activas, movimientos recientes y porcentaje de catálogo sano.
     """
-    return obtener_resumen_admin(db)
+    return obtener_resumen_admin(db, sede=sede)
 
 
 # ── Producto B2C (Público) ───────────────────────────────────────────────────

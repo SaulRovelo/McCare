@@ -73,7 +73,7 @@ export default function AliadosPage() {
             </div>
             <div className="flex items-center gap-6">
               <div className="text-right">
-                <p className="text-2xl font-bold text-foreground">$485,000</p>
+                <p className="text-2xl font-bold text-foreground">485,000 MXN</p>
                 <p className="text-xs text-muted-foreground">Contribuciones Totales</p>
               </div>
               <div className="h-12 w-px bg-border/50" />

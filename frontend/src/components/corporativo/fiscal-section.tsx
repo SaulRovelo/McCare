@@ -3,9 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Download, FileText, ShieldCheck } from "lucide-react";
 
 const fiscalDocs = [
-  { id: 1, period: "Septiembre 2026", amount: "$38,000 MXN", status: "Disponible", date: "01/10/2026" },
-  { id: 2, period: "Agosto 2026", amount: "$30,000 MXN", status: "Disponible", date: "01/09/2026" },
-  { id: 3, period: "Julio 2026", amount: "$35,000 MXN", status: "Disponible", date: "01/08/2026" },
+  { id: 1, period: "Septiembre 2026", amount: "38,000 MXN", status: "Disponible", date: "01/10/2026" },
+  { id: 2, period: "Agosto 2026", amount: "30,000 MXN", status: "Disponible", date: "01/09/2026" },
+  { id: 3, period: "Julio 2026", amount: "35,000 MXN", status: "Disponible", date: "01/08/2026" },
 ];
 
 export function FiscalSection() {

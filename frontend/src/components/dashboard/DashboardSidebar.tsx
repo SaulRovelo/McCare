@@ -38,7 +38,6 @@ const menuPrincipal = [
   { title: "Donaciones",            href: "/dashboard/donaciones", icon: Heart },
   { title: "Agenda",                href: "/dashboard/agenda",    icon: Calendar },
   { title: "Portal de Aliados",     href: "/dashboard/aliados",  icon: Building2, badge: "ESG" },
-  { title: "Panel del Donante",     href: "/dashboard/donante",  icon: UserCircle },
 ]
 
 const menuGestion = [
