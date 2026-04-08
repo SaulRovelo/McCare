@@ -8,10 +8,28 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
 const fetchJSON = async (url: string, options?: RequestInit) => {
-  const res = await fetch(`${API_URL}${url}`, { cache: 'no-store', ...options });
+  const res = await fetch(`${API_URL}${url}`, { 
+    cache: 'no-store', 
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    }
+  });
   if (!res.ok) throw new Error(`Error ${res.status} en ${url}`);
   return res.json();
 };
+
+// ── Logística (Skydropx) ──────────────────────────────────────────────────────
+
+/**
+ * Cotiza un envío real basándose en CP origen, destino y peso.
+ */
+export const postCotizarEnvio = (data: { cp_origen: string, cp_destino: string, peso: number }) =>
+  fetchJSON('/api/envios/cotizar', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 
 // ── Inventario ────────────────────────────────────────────────────────────────
 
@@ -20,7 +38,6 @@ export const getInsumos = () => fetchJSON('/api/insumos');
 export const postInsumo = (data: object) =>
   fetchJSON('/api/insumos', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 
@@ -30,16 +47,16 @@ export const getMisiones = () => fetchJSON('/api/misiones');
 
 // ── Auditoría / Movimientos ───────────────────────────────────────────────────
 
-export const getMovimientosGlobales = (limit = 20) =>
+/**
+ * Obtiene los movimientos globales para MissionsGrid y Auditoría.
+ * Sincronizado para evitar Error 404.
+ */
+export const getMovimientosGlobales = (limit = 100) =>
   fetchJSON(`/api/movimientos?limit=${limit}`);
 
 export const getMovimientosPorInsumo = (insumoId: string) =>
   fetchJSON(`/api/insumos/${insumoId}/movimientos`);
 
-/**
- * Registra un movimiento real. Incluye campo 'origen' para trazabilidad.
- * origen: 'interno' | 'publico' | 'corporativo'
- */
 export const postMovimiento = (data: {
   insumo_id: string;
   tipo_movimiento: 'entrada' | 'salida' | 'ajuste';
@@ -49,7 +66,6 @@ export const postMovimiento = (data: {
 }) =>
   fetchJSON('/api/movimientos', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ origen: 'interno', ...data }),
   });
 
@@ -62,22 +78,29 @@ export const getForecast = (limit = 20) =>
 
 export const getAdminResumen = () => fetchJSON('/api/admin/resumen');
 
-// ── B2C Público ───────────────────────────────────────────────────────────────
-
-export const getImpactStories = (limit = 15) =>
-  fetchJSON(`/api/impacto/historias?limit=${limit}`);
-
-export const getImpactoResumen = () => fetchJSON('/api/impacto/resumen');
-
-export const postDonacionGeneral = (monto: number) =>
-  fetchJSON(`/api/impacto/donar_general?monto=${monto}`, {
-    method: 'POST',
-  });
+// ── B2C Público / Donaciones ───────────────────────────────────────────────────
 
 /**
- * Resuelve una misión registrando una entrada de reabastecimiento.
- * Origen configurable para distinguir acción pública vs. corporativa vs. interna.
+ * Obtiene historias de éxito. Corregido para evitar el 404 en PortalImpacto.
  */
+export const getImpactStories = (limit = 10) =>
+  fetchJSON(`/api/impacto/historias?limit=${limit}`);
+
+/**
+ * Resumen de métricas de impacto (familias, comidas, etc.)
+ */
+export const getImpactoResumen = () => fetchJSON('/api/impacto/resumen');
+
+/**
+ * Registra una donación monetaria. 
+ * Apunta a /api/donaciones/general para coincidir con el backend final.
+ */
+export const postDonacionGeneral = (monto: number) =>
+  fetchJSON('/api/donaciones/general', {
+    method: 'POST',
+    body: JSON.stringify({ monto }),
+  });
+
 export const resolverMision = (
   insumoId: string,
   consumoDiario: number,
@@ -102,16 +125,11 @@ export const getMisionesFinanciables = () =>
 export const getReporteCorporativo = (periodo = 30) =>
   fetchJSON(`/api/corporativo/reporte?periodo=${periodo}`);
 
-/**
- * Patrocina una misión con trazabilidad corporativa.
- * El campo origen='corporativo' queda registrado en el movimiento.
- */
 export const patrocinarMision = (insumoId: string, consumoEstimado: number) =>
   resolverMision(insumoId, consumoEstimado, 'corporativo');
 
 // ── Compatibilidad con código anterior ────────────────────────────────────────
 
-// Mantener para no romper referencias existentes en /impacto/page.tsx
 export const resolverMisionPost = async (insumoCompleto: any) =>
   resolverMision(insumoCompleto.id, insumoCompleto.consumo_diario, 'publico');
 
