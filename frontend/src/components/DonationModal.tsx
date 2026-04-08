@@ -18,6 +18,10 @@ import {
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { postMovimiento } from "@/services/api"
+import {
+  generateDonationCertificate,
+  getLoggedUserName,
+} from "@/lib/generateDonationCertificate";
 
 // ── Tipos ───────────────────────────────────────────────────────────────────
 
@@ -93,8 +97,8 @@ export function DonationModal({ open, onOpenChange, mission }: DonationModalProp
   const handleDonate = async () => {
     if (finalAmount <= 0) return
     setIsSubmitting(true)
+
     try {
-      // Calcular unidades a aportar según costo unitario real del insumo
       const cantidad = Math.max(1, Math.floor(finalAmount / costoUnitario))
 
       await postMovimiento({
@@ -103,6 +107,14 @@ export function DonationModal({ open, onOpenChange, mission }: DonationModalProp
         cantidad,
         observacion: `Donación pública $${finalAmount} MXN — ${unidadesCubiertas} uds (${diasCubiertos} días)`,
         origen: "publico",
+      })
+
+      generateDonationCertificate({
+        donorName: getLoggedUserName(),
+        donationType: "insumo",
+        itemName: mission.title,
+        amount: finalAmount,
+        createdAt: new Date(),
       })
 
       setDonated(true)

@@ -8,6 +8,10 @@ import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
+import {
+  generateDonationCertificate,
+  getLoggedUserName,
+} from "@/lib/generateDonationCertificate";
 
 export default function DonarPage() {
   const [isMonthly, setIsMonthly] = useState(false)
@@ -207,15 +211,29 @@ export default function DonarPage() {
                 onClick={async () => {
                   try {
                     setIsSubmitting(true)
-                    const { postDonacionGeneral } = await import('@/services/api')
+
+                    const { postDonacionGeneral } = await import("@/services/api")
+
                     await postDonacionGeneral(currentAmount)
-                    alert('¡Donación general exitosa! Tus fondos se han asignado automáticamente a las misiones más críticas según la previsión de cuidado.')
-                    // Reset
+
+                    const donorNameInput = (
+                        document.getElementById("donor-name") as HTMLInputElement | null
+                    )?.value?.trim()
+
+                    generateDonationCertificate({
+                      donorName: donorNameInput || getLoggedUserName(),
+                      donationType: "monto",
+                      amount: currentAmount,
+                      createdAt: new Date(),
+                    })
+
+                    alert("¡Donación general exitosa! Se descargó tu certificado.")
+
                     setSelectedAmount(500)
                     setCustomAmount("")
                   } catch (e) {
                     console.error(e)
-                    alert('Error procesando tu donación. Intenta más tarde.')
+                    alert("Error procesando tu donación. Intenta más tarde.")
                   } finally {
                     setIsSubmitting(false)
                   }
