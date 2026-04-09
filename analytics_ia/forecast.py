@@ -82,27 +82,35 @@ def calcular_forecast(db: Session, dias_historico: int = 30, sede: str = None) -
     resultados: List[ForecastResult] = []
     now = datetime.utcnow()
 
-    # ── [NUEVO] Contexto Operativo Real: Familias ──
+    # ── Contexto Operativo Real: Familias por SEDE ──────────────────────────
+    # IMPORTANTE: el factor_ajuste se calcula PER-SEDE del insumo, no globalmente.
+    # Esto garantiza que ambas vistas (pública sin filtro y admin con sede) produzcan
+    # EL MISMO consumo_estimado y dias_para_nivel_critico para el mismo insumo.
     from database.models import FamiliaSQL
     from sqlalchemy import func
 
-    # Calcular ocupación real sumando personas (adultos + ninos) en familias activas
-    query_fam = db.query(func.sum(FamiliaSQL.numero_adultos + FamiliaSQL.numero_ninos)).filter(FamiliaSQL.estado == "activa")
-    if sede:
-        query_fam = query_fam.filter(FamiliaSQL.sede == sede)
-        
-    total_personas_activas = query_fam.scalar() or 0
+    OCUPACION_BASE_POR_SEDE = 50.0  # Capacidad de diseño de cada casa operativa
 
-    personas_en_sede = total_personas_activas
-    
-    # Asumimos una ocupación "base" operativa de diseño para el albergue
-    OCUPACION_BASE = 50.0
-    ocupacion_relativa = personas_en_sede / OCUPACION_BASE if OCUPACION_BASE > 0 else 0
-    # Multiplicador exponencial de estrés logístico: Si rebasa 100%, el estrés crece más agresivo.
-    factor_ajuste = (ocupacion_relativa ** 1.15) if ocupacion_relativa > 1.0 else max(1.0, ocupacion_relativa)
+    # Cache de factor_ajuste por sede: evita N queries al DB en el loop
+    _factor_cache: dict = {}
 
+    def _get_factor_ajuste(sede_insumo: str) -> tuple:
+        if sede_insumo in _factor_cache:
+            return _factor_cache[sede_insumo]
+        personas = db.query(
+            func.sum(FamiliaSQL.numero_adultos + FamiliaSQL.numero_ninos)
+        ).filter(
+            FamiliaSQL.estado == "activa",
+            FamiliaSQL.sede == sede_insumo
+        ).scalar() or 0
+        ocupacion_rel = personas / OCUPACION_BASE_POR_SEDE
+        factor = (ocupacion_rel ** 1.15) if ocupacion_rel > 1.0 else max(1.0, ocupacion_rel)
+        _factor_cache[sede_insumo] = (factor, personas)
+        return factor, personas
 
     for insumo in insumos_db:
+        # Factor de ajuste siempre calculado con la sede PROPIA del insumo
+        factor_ajuste, personas_insumo = _get_factor_ajuste(insumo.sede)
         # Predecir consumo medio usando al Oráculo de Hoeffding para los prox. 3 días
         predicciones = []
         for offset in range(1, 4):
@@ -145,10 +153,10 @@ def calcular_forecast(db: Session, dias_historico: int = 30, sede: str = None) -
                 mensaje = f"Inminente [Hoeffding]: Caerá a zona crítica en {round(dias_critico)} días."
             elif dias_critico <= 7:
                 estado = "atencion"
-                mensaje = f"Prevención River ML: Alcanzará alerta en aprox. {round(dias_critico)} días."
+                mensaje = f"Prevención River ML (Naranja): Alcanzará alerta en aprox. {round(dias_critico)} días."
             else:
                 estado = "estable"
-                mensaje = f"Sano: {round(dias_critico)} días de margen antes del nivel crítico."
+                mensaje = f"Óptimo: Abundante margen de {round(dias_critico)} días."
 
         # Identificar casos sin datos puros
         if (metodo == "fallback_base" and stock > nivel_critico and insumo.consumo_diario <= 0):
@@ -159,6 +167,7 @@ def calcular_forecast(db: Session, dias_historico: int = 30, sede: str = None) -
             id=insumo.id,
             nombre=insumo.nombre,
             categoria=insumo.categoria,
+            sede=insumo.sede,
             stock_actual=stock,
             nivel_critico=nivel_critico,
             consumo_base=insumo.consumo_diario,
@@ -169,9 +178,9 @@ def calcular_forecast(db: Session, dias_historico: int = 30, sede: str = None) -
             estado_forecast=estado,
             confianza_basica=confianza,
             mensaje_forecast=mensaje,
-            ocupacion_actual=total_personas_activas,
+            ocupacion_actual=personas_insumo,
             factor_ajuste=round(factor_ajuste, 2),
-            personas_en_sede=personas_en_sede
+            personas_en_sede=personas_insumo
         ))
 
     resultados.sort(key=lambda x: (

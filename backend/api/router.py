@@ -114,9 +114,9 @@ def obtener_resumen_administrativo(sede: str = None, db: Session = Depends(get_d
 # ── Producto B2C (Público) ───────────────────────────────────────────────────
 
 @api_router.get("/impacto/historias", response_model=List[ImpactStory], tags=["B2C Donantes"])
-def obtener_historias_donante(limit: int = 15, db: Session = Depends(get_db)):
+def obtener_historias_donante(limit: int = 15, sede: str = None, db: Session = Depends(get_db)):
     """Historias de impacto para la vista donante. Combina misiones + forecast."""
-    return compilar_historias(db, limit)
+    return compilar_historias(db, limit, sede=sede)
 
 
 @api_router.get("/impacto/resumen", response_model=ImpactoResumen, tags=["B2C Donantes"])

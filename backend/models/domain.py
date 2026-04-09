@@ -75,7 +75,7 @@ class MisionFinanciable(BaseModel):
     nombre_insumo: str
     categoria: str
     tipo: Literal["rescate_critico", "prevencion_inteligente"]
-    severidad: Literal["alta", "media"]
+    severidad: Literal["alta", "media", "baja"]
     titulo: str
     descripcion_ejecutiva: str       # Tono B2B, no emocional
     impacto_familias: int            # Calculo centralizado de metricas.py
@@ -131,6 +131,7 @@ class ForecastResult(BaseModel):
     id: UUID | str
     nombre: str
     categoria: str
+    sede: str
     stock_actual: int
     nivel_critico: int
     consumo_base: float
@@ -155,7 +156,7 @@ class ImpactStory(BaseModel):
     categoria: str
     casa: str
     tipo_historia: Literal["rescate_critico", "prevencion_inteligente"]
-    severidad: Literal["alta", "media"]
+    severidad: Literal["alta", "media", "baja"]
     titulo: str
     descripcion: str
     impacto_resumido: str
