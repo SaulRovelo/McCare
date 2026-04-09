@@ -37,7 +37,9 @@ import {
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 
-import { getInsumos, getMovimientosGlobales } from "@/services/api"
+import { getPerfilDonante, getHistorialDonaciones, getMisionesActivas } from "@/services/donanteApi"
+import { getMovimientosGlobales } from "@/services/api"
+import { getSessionUser } from "@/lib/auth"
 import { DonationModal } from "@/components/DonationModal"
 
 /* ═══════════════════════════════════════════
@@ -119,44 +121,12 @@ const sedes = [
   { key: "edomex", label: "Casa Edo. de México" },
 ]
 
-const donationHistory = [
-  {
-    id: 1,
-    icon: DollarSign,
-    category: "Mensual",
-    date: "15 Abr 2026",
-    mission: "Aportación Mensual General",
-    amount: "500.00 MXN",
-    impact: "5 familias",
-  },
-  {
-    id: 2,
-    icon: Shield,
-    category: "Médico",
-    date: "08 Mar 2026",
-    mission: "Kits de Admisión Hospitalaria",
-    amount: "1,200.00 MXN",
-    impact: "12 familias",
-  },
-  {
-    id: 3,
-    icon: DollarSign,
-    category: "Mensual",
-    date: "15 Mar 2026",
-    mission: "Aportación Mensual General",
-    amount: "500.00 MXN",
-    impact: "5 familias",
-  },
-]
-
-/* ═══════════════════════════════════════════
-   MAIN COMPONENT
-   ═══════════════════════════════════════════ */
-
 export default function DonorHomePage() {
   const [activeSede, setActiveSede] = useState("all")
   
   // Real Data states
+  const [perfil, setPerfil] = useState<any>(null)
+  const [historial, setHistorial] = useState<any[]>([])
   const [misiones, setMisiones] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   
@@ -167,10 +137,19 @@ export default function DonorHomePage() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [insumosRaw, movimientos] = await Promise.all([
-        getInsumos(),
+      const user = getSessionUser()
+      if (!user) return
+
+      // Cargar APIs concurrentes
+      const [perfilData, historialData, insumosRaw, movimientos] = await Promise.all([
+        getPerfilDonante(user.usuario_id).catch(() => null),
+        getHistorialDonaciones(user.usuario_id).catch(() => []),
+        getMisionesActivas(),
         getMovimientosGlobales(100),
       ])
+
+      if (perfilData) setPerfil(perfilData)
+      if (historialData) setHistorial(Array.isArray(historialData) ? historialData : [])
 
       const countMap: Record<string, number> = {}
       for (const mov of movimientos) {
@@ -222,7 +201,7 @@ export default function DonorHomePage() {
 
       setMisiones(mapeados)
     } catch (err) {
-      console.error("Error cargando misiones:", err)
+      console.error("Error cargando dashboard donante:", err)
     } finally {
       setLoading(false)
     }
@@ -237,6 +216,13 @@ export default function DonorHomePage() {
       ? misiones
       : misiones.filter((m) => m.location === activeSede)
 
+  // Variables con fallback si están cargando o ausentes
+  const userName = getSessionUser()?.nombre || "Héroe"
+  const donorNivel = perfil?.nivel || "Nivel Base"
+  const familiasImpactadas = perfil?.familias_impactadas_acumuladas || 0
+  const totalMovimientos = perfil?.total_movimientos || 0
+  const impactoAcumulado = perfil?.total_donado_mxn || 0
+
   return (
     <div className="flex flex-col h-full gap-4 overflow-hidden">
       {/* HERO CARD UNIFICADO */}
@@ -250,15 +236,15 @@ export default function DonorHomePage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-2">
                   <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-                    Hola, Heróe
+                    Hola, {userName}
                   </h1>
                   <Badge className="bg-gradient-to-r from-[#FFBC0D] to-[#F59E0B] text-white border-none shadow-lg shadow-amber-500/20">
                     <Medal className="w-3.5 h-3.5 mr-1" />
-                    Nivel Oro
+                    {loading ? "Cargando..." : donorNivel}
                   </Badge>
                 </div>
                 <p className="text-white/70 text-sm max-w-md">
-                  Gracias por tu compromiso constante. Tu generosidad cambia vidas.
+                  Gracias por tu compromiso constante. Tu generosidad cambia vidas diariamente.
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2.5">
                   <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/15 rounded-lg px-3 py-1.5">
@@ -267,7 +253,7 @@ export default function DonorHomePage() {
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
                     </span>
                     <span className="text-white/90 text-xs font-medium">
-                      Mensual Activa · <span className="font-bold">500 MXN/mes</span>
+                      Registrado y Activo
                     </span>
                   </div>
                 </div>
@@ -276,7 +262,7 @@ export default function DonorHomePage() {
               <div className="flex items-center gap-6 shrink-0">
                 <div className="text-right">
                   <p className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-                    <CountUp target={220} />
+                    {loading ? <span className="h-8 w-16 bg-white/20 rounded animate-pulse inline-block" /> : <CountUp target={familiasImpactadas} />}
                   </p>
                   <p className="text-white/50 text-[10px] font-semibold uppercase tracking-wider mt-0.5">
                     Familias Apoyadas
@@ -285,7 +271,7 @@ export default function DonorHomePage() {
                 <div className="w-px h-12 bg-white/20" />
                 <div className="text-right">
                   <p className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-                    <CountUp target={17500} /> <span className="text-lg">MXN</span>
+                    {loading ? <span className="h-8 w-24 bg-white/20 rounded animate-pulse inline-block" /> : <CountUp target={impactoAcumulado} />} <span className="text-lg">MXN</span>
                   </p>
                   <p className="text-white/50 text-[10px] font-semibold uppercase tracking-wider mt-0.5">
                     Impacto Total
@@ -300,10 +286,10 @@ export default function DonorHomePage() {
       {/* ROW 2: 4 KPI CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
         {[
-          { iconBg: "bg-[#DA291C]/10", icon: Home, iconColor: "text-[#DA291C]", label: "Familias Beneficiadas", value: <CountUp target={220} />, sub: "+12 este mes", subIcon: TrendingUp, subColor: "text-emerald-600" },
-          { iconBg: "bg-pink-500/10", icon: Heart, iconColor: "text-pink-500", label: "Aportaciones Totales", value: "8", sub: "Donante Leal", subIcon: Star, subColor: "text-pink-500" },
-          { iconBg: "bg-[#FFBC0D]/12", icon: DollarSign, iconColor: "text-[#F59E0B]", label: "Impacto Acumulado", value: "17.5K MXN", sub: "Top 5% Global", subIcon: Sparkles, subColor: "text-amber-600" },
-          { iconBg: "bg-emerald-500/10", icon: FileText, iconColor: "text-emerald-600", label: "Recibos Fiscales", value: "10", sub: null, subIcon: null, subColor: "" },
+          { iconBg: "bg-[#DA291C]/10", icon: Home, iconColor: "text-[#DA291C]", label: "Familias Beneficiadas", value: familiasImpactadas, isCurrency: false, sub: null },
+          { iconBg: "bg-pink-500/10", icon: Heart, iconColor: "text-pink-500", label: "Aportaciones Totales", value: totalMovimientos, isCurrency: false, sub: null },
+          { iconBg: "bg-[#FFBC0D]/12", icon: DollarSign, iconColor: "text-[#F59E0B]", label: "Impacto Acumulado", value: impactoAcumulado, isCurrency: true, sub: null },
+          { iconBg: "bg-emerald-500/10", icon: FileText, iconColor: "text-emerald-600", label: "Recibos Disponibles", value: "-", sub: "Ir a panel", subColor: "text-blue-500" },
         ].map((c, i) => (
           <FadeUp key={i} delay={0.05 + i * 0.05}>
             <Card className="border-border/50 shadow-sm h-full py-2">
@@ -312,7 +298,16 @@ export default function DonorHomePage() {
                   <c.icon className={cn("w-4 h-4", c.iconColor)} />
                 </div>
                 <p className="text-muted-foreground text-[10px] font-semibold">{c.label}</p>
-                <p className="text-foreground text-xl font-extrabold tracking-tight mt-0.5">{c.value}</p>
+                <div className="mt-0.5 min-h-[28px] flex items-center">
+                  {loading ? (
+                    <div className="h-6 w-16 bg-muted rounded animate-pulse" />
+                  ) : (
+                    <p className="text-foreground text-xl font-extrabold tracking-tight">
+                      {typeof c.value === 'number' ? <CountUp target={c.value} /> : c.value}
+                      {c.isCurrency ? " MXN" : ""}
+                    </p>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </FadeUp>
@@ -327,7 +322,7 @@ export default function DonorHomePage() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-base">Misiones Críticas Activas</CardTitle>
-                  <CardDescription className="text-[11px] mt-0.5">Tarjetas idénticas a la página principal</CardDescription>
+                  <CardDescription className="text-[11px] mt-0.5">Prioridades detectadas por CareforecastIA</CardDescription>
                 </div>
                 <Button variant="ghost" size="sm" onClick={fetchData} className="text-muted-foreground hover:text-[#DA291C] text-[10px] h-7">
                   <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
@@ -345,7 +340,9 @@ export default function DonorHomePage() {
 
             <CardContent className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
               {loading ? (
-                <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">Cargando misiones reales...</div>
+                <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
+                  Cargando misiones reales...
+                </div>
               ) : filteredMissions.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {filteredMissions.map((mission) => (
@@ -396,30 +393,52 @@ export default function DonorHomePage() {
         <FadeUp delay={0.3} className="xl:col-span-4 min-h-0">
           <Card className="border-border/50 shadow-sm h-full flex flex-col py-0">
             <CardHeader className="pb-3 pt-4 shrink-0 border-b">
-              <CardTitle className="text-base">Historial</CardTitle>
+              <CardTitle className="text-base">Historial Reciente</CardTitle>
             </CardHeader>
             <CardContent className="flex-1 overflow-auto p-0">
-              <Table>
-                <TableBody>
-                  {donationHistory.map((row) => {
-                    const IconComp = row.icon
-                    return (
-                      <TableRow key={row.id}>
+              {loading ? (
+                <div className="flex flex-col gap-3 p-4">
+                  {[1,2,3].map((i) => (
+                    <div key={i} className="flex gap-2 p-2 items-center bg-slate-50/50 rounded-lg animate-pulse">
+                      <div className="w-8 h-8 rounded-full bg-slate-200" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 w-1/2 bg-slate-200 rounded" />
+                        <div className="h-2 w-1/4 bg-slate-200 rounded" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : historial.length > 0 ? (
+                <Table>
+                  <TableBody>
+                    {historial.map((row: any, i) => (
+                      <TableRow key={row.id || i}>
                         <TableCell className="py-2.5">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded flex items-center justify-center bg-slate-50 text-slate-500"><IconComp className="w-3 h-3" /></div>
+                            <div className="w-6 h-6 rounded flex items-center justify-center bg-emerald-50 text-emerald-500">
+                              <Heart className="w-3 h-3" />
+                            </div>
                             <div>
-                              <p className="text-xs font-bold">{row.mission}</p>
-                              <p className="text-[9px] text-muted-foreground">{row.date}</p>
+                              <p className="text-xs font-bold">{row.observacion || row.tipo || "Aportación"}</p>
+                              <p className="text-[9px] text-muted-foreground">
+                                {new Date(row.fecha).toLocaleDateString("es-MX", { day: '2-digit', month: 'short', year: 'numeric'})}
+                              </p>
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right text-xs font-bold py-2.5">{row.amount}</TableCell>
+                        <TableCell className="text-right text-xs font-bold py-2.5">
+                          ${typeof row.monto_mxn === 'number' ? row.monto_mxn.toFixed(2) : (row.monto_man ?? row.monto ?? 0).toFixed(2)}
+                        </TableCell>
                       </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8 text-center text-sm">
+                  <Shield className="w-10 h-10 text-slate-200 mb-2" />
+                  <p>Aún no hay contribuciones en tu historial.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </FadeUp>
