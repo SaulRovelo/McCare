@@ -1,14 +1,42 @@
 import { Briefcase, HeartHandshake, Clock, Award } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
-const kpis = [
-  { id: "inversion", label: "Inversión Social Acumulada", value: "250,000 MXN", unit: "MXN", change: "+12.5% vs año anterior", icon: Briefcase, iconBg: "bg-[#DA291C]/10", iconColor: "text-[#DA291C]" },
-  { id: "familias", label: "Familias Impactadas", value: "120", unit: "familias", change: "+18 este trimestre", icon: HeartHandshake, iconBg: "bg-rose-50", iconColor: "text-rose-500" },
-  { id: "horas", label: "Horas de Voluntariado", value: "340", unit: "horas", change: "89 empleados participaron", icon: Clock, iconBg: "bg-blue-50", iconColor: "text-blue-500" },
-  { id: "nivel", label: "Nivel de Partnership", value: "Oro", unit: "", change: "Próximo nivel: Platino", icon: Award, iconBg: "bg-amber-50", iconColor: "text-[#F59E0B]", highlight: true },
-];
+export function KpiCards({ data }: { data?: any }) {
+  const kpis = [
+    { 
+      id: "inversion", 
+      label: "Inversión Social Acumulada", 
+      value: `${(data?.inversion_social_acumulada || 0).toLocaleString()}`, 
+      unit: "MXN", 
+      change: "Fondo de donativos directos", 
+      icon: Briefcase, iconBg: "bg-[#DA291C]/10", iconColor: "text-[#DA291C]" 
+    },
+    { 
+      id: "familias", 
+      label: "Familias Impactadas", 
+      value: (data?.familias_potenciales || 0).toString(), 
+      unit: "familias", 
+      change: "Total acumulado apoyado", 
+      icon: HeartHandshake, iconBg: "bg-rose-50", iconColor: "text-rose-500" 
+    },
+    { 
+      id: "horas", 
+      label: "Horas de Voluntariado", 
+      value: (data?.horas_voluntariado || 0).toString(), 
+      unit: "horas", 
+      change: `${data?.empleados_voluntarios || 0} empleados participaron`, 
+      icon: Clock, iconBg: "bg-blue-50", iconColor: "text-blue-500" 
+    },
+    { 
+      id: "nivel", 
+      label: "Nivel de Partnership", 
+      value: data?.nivel_partnership || "Generoso", 
+      unit: "", 
+      change: "Conoce tus beneficios de nivel", 
+      icon: Award, iconBg: "bg-amber-50", iconColor: "text-[#F59E0B]", highlight: true 
+    },
+  ];
 
-export function KpiCards() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
       {kpis.map((kpi) => (
