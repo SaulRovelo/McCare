@@ -8,58 +8,58 @@ import { getInsumos, getMovimientosGlobales } from "@/services/api"
 
 // ── Descripciones emocionales por categoría ─────────────────────────────────
 const fallbackDescriptions: Record<string, string> = {
-  "Alimentos":  "Garantiza la alimentación saludable de familias que necesitan estar cerca de sus hijos hospitalizados. Cada comida significa un día más de nutrición y esperanza.",
-  "Higiene":    "Artículos esenciales de cuidado personal para familias que salieron de casa inesperadamente y necesitan mantenerse fuertes.",
-  "Médico":     "Suministros de primeros auxilios e insumos clínicos básicos para familias con necesidades de salud inmediatas.",
-  "Cuidado":    "Materiales de apoyo, confort y cuidado para abrigar a los niños y sus familias durante las noches más largas.",
-  "Logística":  "Recursos operativos que mantienen funcionando la casa y permiten que todo llegue a tiempo a quienes más lo necesitan.",
-  "Otros":      "Insumos de soporte que complementan la operación diaria y garantizan la dignidad de cada familia alojada.",
+  "Alimentos": "Garantiza la alimentación saludable de familias que necesitan estar cerca de sus hijos hospitalizados. Cada comida significa un día más de nutrición y esperanza.",
+  "Higiene": "Artículos esenciales de cuidado personal para familias que salieron de casa inesperadamente y necesitan mantenerse fuertes.",
+  "Médico": "Suministros de primeros auxilios e insumos clínicos básicos para familias con necesidades de salud inmediatas.",
+  "Cuidado": "Materiales de apoyo, confort y cuidado para abrigar a los niños y sus familias durante las noches más largas.",
+  "Logística": "Recursos operativos que mantienen funcionando la casa y permiten que todo llegue a tiempo a quienes más lo necesitan.",
+  "Otros": "Insumos de soporte que complementan la operación diaria y garantizan la dignidad de cada familia alojada.",
 }
 
 // ── Imágenes por categoría (Unsplash, sin key requerida) ─────────────────────
 const categoryImages: Record<string, string> = {
-  "Alimentos":  "https://images.unsplash.com/photo-1639122654099-6e3017e70c21?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-  "Higiene":    "https://images.unsplash.com/photo-1584308666744-24d5e4a819b1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-  "Médico":     "https://images.unsplash.com/photo-1576089275776-b6cd5deabdad?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-  "Cuidado":    "https://images.unsplash.com/photo-1762922542177-689d5b007e61?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-  "Logística":  "https://images.unsplash.com/photo-1554498808-aaf30c4a22c8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-  "Otros":      "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-  "default":    "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "Alimentos": "https://images.unsplash.com/photo-1639122654099-6e3017e70c21?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "Higiene": "https://images.unsplash.com/photo-1584308666744-24d5e4a819b1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "Médico": "https://images.unsplash.com/photo-1576089275776-b6cd5deabdad?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "Cuidado": "https://images.unsplash.com/photo-1762922542177-689d5b007e61?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "Logística": "https://images.unsplash.com/photo-1554498808-aaf30c4a22c8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "Otros": "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "default": "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
 }
 
 // ── Imágenes personalizadas por nombre exacto de Misión (Insumo) ─────────────
 const itemImages: Record<string, string> = {
-  "Fórmula Infantil L1":         "https://farmaciacoyoacan.com/cdn/shop/files/7501058623188_01.jpg?v=1723703269",
-  "Fórmula Láctea Etapa 1":      "https://www.movil.farmaciasguadalajara.com/wcsstore/FGCAS/wcs/products/1246763_A_1280_AL.jpg",
-  "Leche Entera 1L":             "https://cdn-bm.aktiosdigitalservices.com/tol/bm/media/product/img/700x700/A76411_00.jpg?t=20260128040006",
-  "Papilla de Frutas":           "https://www.recetasparamibebe.com/wp-content/uploads/2023/11/Receta-papilla-frutas-yogur-galletas.jpg",
-  "Pañales RN":                  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQQgl1JNhPgPCtQ90vWPrfUEk1icRNb1QYonA&s",
-  "Pañales Etapa 3":             "https://www.costco.com.mx/medias/sys_master/products/h8a/h25/192116155940894.jpg",
-  "Pañales Etapa 4":             "https://hebmx.vtexassets.com/arquivos/ids/649849-800-800?v=638823916793600000&width=800&height=800&aspect=true",
-  "Suero Oral (Pediátrico)":     "https://farmacia-frias.com/37623-home_default/bi-oralsuero-sabor-fresa-2-x-330-ml.jpg",
-  "Suero Oral":                  "https://www.ministeriodesalud.go.cr/images/imagenesms/2022/Prensa/img_electrolit.png",
-  "Paracetamol Gotas":           "https://www.movil.farmaciasguadalajara.com/wcsstore/FGCAS/wcs/products/1420976_A_1280_AL.jpg",
-  "Jabón Neutro":                "https://surtace.mayoreoenlinea.mx/cdn/shop/products/1_1.jpg?v=1700064595",
-  "Toallas Húmedas Pqte":        "https://i5.walmartimages.com.mx/gr/images/product-images/img_large/00750611068452L1.jpg?odnHeight=612&odnWidth=612&odnBg=FFFFFF",
-  "Toallas Húmedas (Paquete)":   "https://arteli.vtexassets.com/arquivos/ids/268053-800-auto?v=638853479232670000&width=800&height=auto&aspect=true",
-  "Papillas Surtidas":           "https://tb-static.uber.com/prod/image-proc/processed_images/487a91487f5305a689182267df2a0041/b4665c191b34baf3d0e0fa45dfdd3d1d.jpeg",
-  "Biberones 8oz":               "https://i5-mx.walmartimages.com/gr/images/product-images/img_large/00750102751360L.jpg",
-  "Sillas de Ruedas Pediátricas":"https://medwalk.mx/wp-content/uploads/2023/05/SILLA-INFANTIL-SP3602E.png",
-  "Juguetes Didácticos":         "https://http2.mlstatic.com/D_NQ_NP_992637-MLA99945687957_112025-O.webp",
-  "Nutrición Parenteral Esp":    "https://bexen.com/wp-content/uploads/Comparativa-dispositivos-nutricion-enteral.webp",
-  "Nutrición Parenteral Esp.":   "https://bexen.com/wp-content/uploads/Comparativa-dispositivos-nutricion-enteral.webp",
-  "Apoyo de Transporte (Boletos)":"https://printpv.com/web/image/product.image/106/image_1024/Boletos?unique=c6f652c",
-  "Despensas Comunitarias":       "https://www.caritas.org.mx/wp-content/uploads/2020/07/que-lleva-una-despensa-basica.jpg",
-  "Kits de Aseo Personal":        "https://detqhtv6m6lzl.cloudfront.net/HCLContenido/producto/FullImage/7502263760347-01.jpg",
-  "Cobijas Térmicas":             "https://m.media-amazon.com/images/I/91l8auHSvpL.jpg",
-  "Snacks Nutricionales":         "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ2sB8qiRmg5ZrO92-Sg-9PDpkuuM_oyR1Rlg&s",
-  "Gasa Estéril":                 "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSOsodKJv_jlLHqUrmnG1nE6Nltr0WGYrbV-w&s",
-  "Kit Pediátrico Respiratorio":  "https://http2.mlstatic.com/D_NQ_NP_904065-MLM92253960516_092025-O.webp",
-  "Colchonetas Extra":            "https://resources.sears.com.mx/medios-plazavip/t1/1719343475BETADREAMSjpg?scale=500&qlty=75"
+  "Fórmula Infantil L1": "https://farmaciacoyoacan.com/cdn/shop/files/7501058623188_01.jpg?v=1723703269",
+  "Fórmula Láctea Etapa 1": "https://www.movil.farmaciasguadalajara.com/wcsstore/FGCAS/wcs/products/1246763_A_1280_AL.jpg",
+  "Leche Entera 1L": "https://cdn-bm.aktiosdigitalservices.com/tol/bm/media/product/img/700x700/A76411_00.jpg?t=20260128040006",
+  "Papilla de Frutas": "https://www.recetasparamibebe.com/wp-content/uploads/2023/11/Receta-papilla-frutas-yogur-galletas.jpg",
+  "Pañales RN": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQQgl1JNhPgPCtQ90vWPrfUEk1icRNb1QYonA&s",
+  "Pañales Etapa 3": "https://www.costco.com.mx/medias/sys_master/products/h8a/h25/192116155940894.jpg",
+  "Pañales Etapa 4": "https://hebmx.vtexassets.com/arquivos/ids/649849-800-800?v=638823916793600000&width=800&height=800&aspect=true",
+  "Suero Oral (Pediátrico)": "https://farmacia-frias.com/37623-home_default/bi-oralsuero-sabor-fresa-2-x-330-ml.jpg",
+  "Suero Oral": "https://www.ministeriodesalud.go.cr/images/imagenesms/2022/Prensa/img_electrolit.png",
+  "Paracetamol Gotas": "https://www.movil.farmaciasguadalajara.com/wcsstore/FGCAS/wcs/products/1420976_A_1280_AL.jpg",
+  "Jabón Neutro": "https://arteli.vtexassets.com/arquivos/ids/243651-800-auto?v=638635764617930000&width=800&height=auto&aspect=true",
+  "Toallas Húmedas Pqte": "https://i5.walmartimages.com.mx/gr/images/product-images/img_large/00750611068452L1.jpg?odnHeight=612&odnWidth=612&odnBg=FFFFFF",
+  "Toallas Húmedas (Paquete)": "https://arteli.vtexassets.com/arquivos/ids/268053-800-auto?v=638853479232670000&width=800&height=auto&aspect=true",
+  "Papillas Surtidas": "https://tb-static.uber.com/prod/image-proc/processed_images/487a91487f5305a689182267df2a0041/b4665c191b34baf3d0e0fa45dfdd3d1d.jpeg",
+  "Biberones 8oz": "https://i5-mx.walmartimages.com/gr/images/product-images/img_large/00750102751360L.jpg",
+  "Sillas de Ruedas Pediátricas": "https://medwalk.mx/wp-content/uploads/2023/05/SILLA-INFANTIL-SP3602E.png",
+  "Juguetes Didácticos": "https://http2.mlstatic.com/D_NQ_NP_992637-MLA99945687957_112025-O.webp",
+  "Nutrición Parenteral Esp": "https://bexen.com/wp-content/uploads/Comparativa-dispositivos-nutricion-enteral.webp",
+  "Nutrición Parenteral Esp.": "https://bexen.com/wp-content/uploads/Comparativa-dispositivos-nutricion-enteral.webp",
+  "Apoyo de Transporte (Boletos)": "https://printpv.com/web/image/product.image/106/image_1024/Boletos?unique=c6f652c",
+  "Despensas Comunitarias": "https://www.caritas.org.mx/wp-content/uploads/2020/07/que-lleva-una-despensa-basica.jpg",
+  "Kits de Aseo Personal": "https://detqhtv6m6lzl.cloudfront.net/HCLContenido/producto/FullImage/7502263760347-01.jpg",
+  "Cobijas Térmicas": "https://m.media-amazon.com/images/I/91l8auHSvpL.jpg",
+  "Snacks Nutricionales": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ2sB8qiRmg5ZrO92-Sg-9PDpkuuM_oyR1Rlg&s",
+  "Gasa Estéril": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSOsodKJv_jlLHqUrmnG1nE6Nltr0WGYrbV-w&s",
+  "Kit Pediátrico Respiratorio": "https://http2.mlstatic.com/D_NQ_NP_904065-MLM92253960516_092025-O.webp",
+  "Colchonetas Extra": "https://resources.sears.com.mx/medios-plazavip/t1/1719343475BETADREAMSjpg?scale=500&qlty=75"
 }
 
 const SEDES = [
-  { id: "cdmx",   name: "Casa CDMX" },
+  { id: "cdmx", name: "Casa CDMX" },
   { id: "puebla", name: "Casa Puebla" },
   { id: "edomex", name: "Casa Estado de México" },
 ]
@@ -67,12 +67,12 @@ const SEDES = [
 // ── Componente ───────────────────────────────────────────────────────────────
 
 export function MissionsGrid() {
-  const [misiones, setMisiones]                 = useState<any[]>([])
+  const [misiones, setMisiones] = useState<any[]>([])
   const [misionSeleccionada, setMisionSeleccionada] = useState<any | null>(null)
-  const [modalAbierto, setModalAbierto]         = useState(false)
-  const [loading, setLoading]                   = useState(true)
+  const [modalAbierto, setModalAbierto] = useState(false)
+  const [loading, setLoading] = useState(true)
   // Conteo de movimientos reales por insumo para el "donadores"
-  const [movCountMap, setMovCountMap]           = useState<Record<string, number>>({})
+  const [movCountMap, setMovCountMap] = useState<Record<string, number>>({})
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -99,33 +99,33 @@ export function MissionsGrid() {
 
         // ── Financiamiento en MXN reales ──
         const costoUnitario = ins.costo_unitario > 0 ? ins.costo_unitario : 85
-        const raised        = Math.round(ins.stock_actual * costoUnitario)
-        const goalBruto     = Math.round(ins.capacidad_maxima * costoUnitario)
-        const goal          = goalBruto > raised ? goalBruto : raised + Math.round(costoUnitario * 10)
-        const percent       = Math.min(100, Math.round((raised / goal) * 100))
+        const raised = Math.round(ins.stock_actual * costoUnitario)
+        const goalBruto = Math.round(ins.capacidad_maxima * costoUnitario)
+        const goal = goalBruto > raised ? goalBruto : raised + Math.round(costoUnitario * 10)
+        const percent = Math.min(100, Math.round((raised / goal) * 100))
 
         // ── Tiempo restante real ──
-        const consumoDiario    = ins.consumo_diario > 0 ? ins.consumo_diario : 1
-        const horasRestantes   = Math.max(1, Math.round((ins.stock_actual / consumoDiario) * 24))
-        const timeLeft         = horasRestantes > 48
+        const consumoDiario = ins.consumo_diario > 0 ? ins.consumo_diario : 1
+        const horasRestantes = Math.max(1, Math.round((ins.stock_actual / consumoDiario) * 24))
+        const timeLeft = horasRestantes > 48
           ? `${Math.round(horasRestantes / 24)} días`
           : `${horasRestantes} horas`
 
         // ── Beneficiarios (3 uds/familia/semana) ──
-        const familiasImpacto  = Math.max(1, Math.floor((consumoDiario * 7) / 3))
+        const familiasImpacto = Math.max(1, Math.floor((consumoDiario * 7) / 3))
 
         return {
-          id:            ins.id,
-          title:         ins.nombre,
-          emotion:       fallbackDescriptions[ins.categoria] ?? "Tu ayuda transforma la incertidumbre en esperanza para nuestras familias.",
-          image:         itemImages[ins.nombre] ?? categoryImages[ins.categoria] ?? categoryImages.default,
+          id: ins.id,
+          title: ins.nombre,
+          emotion: fallbackDescriptions[ins.categoria] ?? "Tu ayuda transforma la incertidumbre en esperanza para nuestras familias.",
+          image: itemImages[ins.nombre] ?? categoryImages[ins.categoria] ?? categoryImages.default,
           raised,
           goal,
           percent,
           timeLeft,
-          donors:        countMap[ins.id] ?? 0,       // movimientos de entrada reales
+          donors: countMap[ins.id] ?? 0,       // movimientos de entrada reales
           beneficiaries: `${familiasImpacto} familia${familiasImpacto !== 1 ? "s" : ""}`,
-          location:      ins.sede,
+          location: ins.sede,
           urgency,
           raw: ins,                                   // dato bruto para el modal
         }

@@ -150,7 +150,7 @@ def obtener_historial_donante(
     resultado = []
     for d in donaciones:
         resultado.append(HistorialItemOut(
-            id=d.id,
+            id=str(d.id),
             fecha=d.fecha,
             monto_mxn=d.monto_mxn,
             tipo=d.tipo,
