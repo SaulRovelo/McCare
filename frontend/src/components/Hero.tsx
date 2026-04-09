@@ -29,7 +29,7 @@ export function Hero() {
         {/* Logo */}
         <div className="inline-flex items-center gap-2.5 mb-8">
           <Heart className="w-8 h-8 text-[#DA291C] fill-[#DA291C]" />
-          <span className="text-white" style={{ fontSize: "1.5rem", fontWeight: 700, letterSpacing: "-0.02em" }}>
+          <span className="text-white" style={{ fontSize: "1.5rem", fontWeight: 900, letterSpacing: "-0.02em" }}>
             McCare
           </span>
         </div>
