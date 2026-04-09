@@ -75,7 +75,7 @@ class MisionFinanciable(BaseModel):
     nombre_insumo: str
     categoria: str
     tipo: Literal["rescate_critico", "prevencion_inteligente"]
-    severidad: Literal["alta", "media", "baja"]
+    severidad: Literal["alta", "media"]
     titulo: str
     descripcion_ejecutiva: str       # Tono B2B, no emocional
     impacto_familias: int            # Calculo centralizado de metricas.py
@@ -86,6 +86,31 @@ class MisionFinanciable(BaseModel):
     cta_label: str
     origen: str                      # "operacion_actual" | "forecast_predictivo"
     confianza: str
+
+class CampaniaOut(BaseModel):
+    id: UUID | str
+    nombre_campania: str
+    tipo_matching: str
+    estado: str
+    meta_mxn: float
+    progreso_empleados_mxn: float
+    progreso_empresa_mxn: float
+    model_config = ConfigDict(from_attributes=True)
+
+class DocumentoFiscalOut(BaseModel):
+    id: UUID | str
+    mes_texto: str
+    anio: int
+    monto_amparado: float
+    url_xml: Optional[str] = None
+    url_pdf: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
+class ImpactoMensualItem(BaseModel):
+    """Un punto de datos en la gráfica de impacto social mensual."""
+    mes: str          # Abreviatura: Ene, Feb, ..., Dic
+    donacion: float   # Suma de donaciones MXN ese mes
+    voluntariado: int # Suma de horas de voluntariado ese mes
 
 class CorporativoResumen(BaseModel):
     """KPIs ejecutivos para el portal corporativo."""
@@ -98,6 +123,14 @@ class CorporativoResumen(BaseModel):
     cobertura_promedio_dias: float
     estado_general: Literal["optimo", "alerta", "critico"]
     frase_ejecutiva: str             # Una frase clara para el resumen C-level
+    
+    # Extensiones B2B
+    nivel_partnership: str = "Oro"
+    inversion_social_acumulada: float = 0.0
+    horas_voluntariado: int = 0
+    empleados_voluntarios: int = 0
+    campanias_activas: List[CampaniaOut] = []
+    documentos_fiscales: List[DocumentoFiscalOut] = []
 
 class ItemHistoricoImpacto(BaseModel):
     """Un movimiento de entrada presentado como evento de impacto trazable."""
@@ -131,7 +164,6 @@ class ForecastResult(BaseModel):
     id: UUID | str
     nombre: str
     categoria: str
-    sede: str
     stock_actual: int
     nivel_critico: int
     consumo_base: float
@@ -156,7 +188,7 @@ class ImpactStory(BaseModel):
     categoria: str
     casa: str
     tipo_historia: Literal["rescate_critico", "prevencion_inteligente"]
-    severidad: Literal["alta", "media", "baja"]
+    severidad: Literal["alta", "media"]
     titulo: str
     descripcion: str
     impacto_resumido: str

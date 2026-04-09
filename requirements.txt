@@ -4,3 +4,7 @@ pydantic==2.6.4
 pydantic-settings==2.2.1
 sqlalchemy>=2.0.0
 psycopg2-binary==2.9.9
+passlib[bcrypt]
+python-jose[cryptography]
+fpdf2==2.7.9
+

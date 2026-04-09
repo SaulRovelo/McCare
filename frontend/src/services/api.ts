@@ -126,6 +126,10 @@ export const getMisionesFinanciables = () =>
 export const getReporteCorporativo = (periodo = 30) =>
   fetchJSON(`/api/corporativo/reporte?periodo=${periodo}`);
 
+export const getImpactoMensual = (anio = 2026) =>
+  fetchJSON(`/api/corporativo/impacto-mensual?anio=${anio}`);
+
+
 /**
  * Patrocina una misión con trazabilidad corporativa.
  * El campo origen='corporativo' queda registrado en el movimiento.

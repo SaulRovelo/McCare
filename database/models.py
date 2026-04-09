@@ -90,8 +90,9 @@ class PerfilDonanteSQL(Base):
     bio                     = Column(String(300), nullable=True)
 
     # Datos corporativos (solo si rol=corporativo)
-    empresa_nombre          = Column(String(150), nullable=True)
-    empresa_rfc             = Column(String(50),  nullable=True)
+    empresa_nombre               = Column(String(150), nullable=True)
+    empresa_rfc                  = Column(String(50),  nullable=True)
+    familias_impactadas_acumuladas = Column(Integer, nullable=False, default=0)
 
     fecha_creacion          = Column(DateTime, default=datetime.utcnow)
 
@@ -213,3 +214,51 @@ class ConfiguracionSQL(Base):
     tipo        = Column(String(20), nullable=False, default="str")
     descripcion = Column(String(300), nullable=True)
     actualizado = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ── Módulo Corporativo (Socio B2B) ─────────────────────────────────────────────
+
+class VoluntariadoCorporativoSQL(Base):
+    __tablename__ = "voluntariado_corporativo"
+
+    id                      = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    usuario_id              = Column(String, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False, index=True)
+    horas_totales           = Column(Integer, nullable=False, default=0)
+    empleados_participantes = Column(Integer, nullable=False, default=0)
+    descripcion_actividad   = Column(String(300), nullable=True)
+    fecha_actividad         = Column(DateTime, default=datetime.utcnow, index=True)
+
+    usuario = relationship("UsuarioSQL")
+
+
+class CampaniaCorporativaSQL(Base):
+    """Campañas activas tipo Matching Gifts o Empleados vs Empresa"""
+    __tablename__ = "campanias_corporativas"
+
+    id                     = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    usuario_id             = Column(String, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False, index=True)
+    nombre_campania        = Column(String(150), nullable=False)
+    tipo_matching          = Column(String(50), nullable=False, default="1:1")
+    estado                 = Column(String(30), nullable=False, default="activa") # activa | cerrada
+    meta_mxn               = Column(Float, nullable=False, default=0.0)
+    progreso_empleados_mxn = Column(Float, nullable=False, default=0.0)
+    progreso_empresa_mxn   = Column(Float, nullable=False, default=0.0)
+    fecha_creacion         = Column(DateTime, default=datetime.utcnow)
+
+    usuario = relationship("UsuarioSQL")
+
+
+class DocumentoFiscalSQL(Base):
+    """Comprobantes y recibos deducibles estructurados por mes/año"""
+    __tablename__ = "documentos_fiscales"
+
+    id             = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    usuario_id     = Column(String, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False, index=True)
+    mes_texto      = Column(String(30), nullable=False)  # Ej: "Agosto"
+    anio           = Column(Integer, nullable=False)
+    monto_amparado = Column(Float, nullable=False, default=0.0)
+    url_xml        = Column(String(300), nullable=True)
+    url_pdf        = Column(String(300), nullable=True)
+    fecha_creacion = Column(DateTime, default=datetime.utcnow)
+
+    usuario = relationship("UsuarioSQL")

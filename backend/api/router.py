@@ -1,8 +1,11 @@
 from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from typing import List
 
 from database.connection import get_db, engine
+from database.models import UsuarioSQL
+from backend.auth.dependencies import require_corporativo
 from backend.models.domain import (
     Insumo, InsumoCreate,
     MisionCritica,
@@ -27,7 +30,9 @@ from backend.services.corporativo import (
     obtener_misiones_financiables,
     obtener_resumen_corporativo,
     generar_reporte_esg,
+    obtener_impacto_mensual,
 )
+from backend.services.generador_fiscal import generar_pdf, generar_xml
 from backend.services.notificaciones import (
     crear_notificacion,
     obtener_notificaciones,
@@ -114,9 +119,9 @@ def obtener_resumen_administrativo(sede: str = None, db: Session = Depends(get_d
 # ── Producto B2C (Público) ───────────────────────────────────────────────────
 
 @api_router.get("/impacto/historias", response_model=List[ImpactStory], tags=["B2C Donantes"])
-def obtener_historias_donante(limit: int = 15, sede: str = None, db: Session = Depends(get_db)):
+def obtener_historias_donante(limit: int = 15, db: Session = Depends(get_db)):
     """Historias de impacto para la vista donante. Combina misiones + forecast."""
-    return compilar_historias(db, limit, sede=sede)
+    return compilar_historias(db, limit)
 
 
 @api_router.get("/impacto/resumen", response_model=ImpactoResumen, tags=["B2C Donantes"])
@@ -146,12 +151,29 @@ def donacion_general_b2c(monto: float = None, db: Session = Depends(get_db)):
 # ── Corporativo (RSE / ESG) ────────────────────────────────────────────────────
 
 @api_router.get("/corporativo/resumen", response_model=CorporativoResumen, tags=["Corporativo"])
-def obtener_resumen_corporativo_endpoint(periodo: int = 30, db: Session = Depends(get_db)):
+def obtener_resumen_corporativo_endpoint(
+    periodo: int = 30,
+    db: Session = Depends(get_db),
+    current_user: UsuarioSQL = Depends(require_corporativo),
+):
     """
-    KPIs ejecutivos para el portal corporativo.
+    KPIs ejecutivos para el portal corporativo del usuario autenticado.
     periodo: ventana de análisis en días (default 30). Acepta 7, 30, 90.
     """
-    return obtener_resumen_corporativo(db, periodo_dias=periodo)
+    return obtener_resumen_corporativo(db, periodo_dias=periodo, usuario_id=current_user.id)
+
+
+@api_router.get("/corporativo/impacto-mensual", tags=["Corporativo"])
+def obtener_impacto_mensual_endpoint(
+    anio: int = 2026,
+    db: Session = Depends(get_db),
+    current_user: UsuarioSQL = Depends(require_corporativo),
+):
+    """
+    Agrega donaciones MXN y horas de voluntariado mes a mes para el usuario autenticado.
+    Alimenta la gráfica de Impacto Social Mensual del portal corporativo.
+    """
+    return obtener_impacto_mensual(db, usuario_id=current_user.id, anio=anio)
 
 
 @api_router.get("/corporativo/misiones-financiables", response_model=List[MisionFinanciable], tags=["Corporativo"])
@@ -173,7 +195,48 @@ def obtener_reporte_esg(periodo: int = 30, db: Session = Depends(get_db)):
     return generar_reporte_esg(db, periodo_dias=periodo)
 
 
-# ── Misiones Urgentes ─────────────────────────────────────────────────────────
+@api_router.get("/corporativo/documentos/{doc_id}/pdf", tags=["Corporativo"])
+def descargar_pdf_fiscal(
+    doc_id: str,
+    db: Session = Depends(get_db),
+    current_user: UsuarioSQL = Depends(require_corporativo),
+):
+    """
+    Genera y descarga el PDF del comprobante fiscal deducible de impuestos
+    para el documento especificado. Solo el corporativo propietario puede descargarlo.
+    """
+    pdf_bytes = generar_pdf(db, doc_id=doc_id, usuario_id=current_user.id)
+    if not pdf_bytes:
+        raise HTTPException(status_code=404, detail="Documento fiscal no encontrado.")
+    nombre_archivo = f"ComprobanteFiscal_{doc_id[:8].upper()}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={nombre_archivo}"},
+    )
+
+
+@api_router.get("/corporativo/documentos/{doc_id}/xml", tags=["Corporativo"])
+def descargar_xml_fiscal(
+    doc_id: str,
+    db: Session = Depends(get_db),
+    current_user: UsuarioSQL = Depends(require_corporativo),
+):
+    """
+    Genera y descarga el XML CFDI del comprobante fiscal del documento especificado.
+    Solo el corporativo propietario puede descargarlo.
+    """
+    xml_str = generar_xml(db, doc_id=doc_id, usuario_id=current_user.id)
+    if not xml_str:
+        raise HTTPException(status_code=404, detail="Documento fiscal no encontrado.")
+    nombre_archivo = f"CFDI_{doc_id[:8].upper()}.xml"
+    return Response(
+        content=xml_str.encode("utf-8"),
+        media_type="application/xml",
+        headers={"Content-Disposition": f"attachment; filename={nombre_archivo}"},
+    )
+
+
 
 @api_router.post("/misiones/urgente", response_model=SolicitudUrgenteOut, tags=["Misiones"])
 def solicitar_abastecimiento_urgente(

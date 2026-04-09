@@ -42,17 +42,10 @@ import { getSessionUser } from "@/lib/auth";
    HELPERS & FORMATTING
    ═══════════════════════════════════════════════════ */
 
-function formatCriticalTime(criticalDays: number) {
-  if (criticalDays <= 0) return "En Crisis";
-  if (criticalDays <= 3) return "Riesgo Inminente";
-  if (criticalDays <= 7) return "Atención Prioritaria";
-  return "Monitoreo Preventivo";
-}
-
-function formatDepletionTime(days: number) {
+function formatHumanTime(days: number) {
   if (days <= 0.5) return "Se agota hoy";
   if (days <= 1.5) return "Se agota mañana";
-  return `Se agota en ${Math.round(days)} días`;
+  return `En ${Math.round(days)} días`;
 }
 
 /* ═══════════════════════════════════════════════════
@@ -110,18 +103,7 @@ export default function CareforecastPage() {
         const maxCap = matchingInsumo.capacidad_maxima || 100;
         const unitsNeeded = maxCap > item.stock_actual ? (maxCap - item.stock_actual) : maxCap;
         const totalCost = unitsNeeded * cost;
-        // dias_para_nivel_critico = mismo dato que usa el sistema de misiones (es el tiempo real de acción)
-        // dias_para_agotarse = solo informativo (cuándo llega a cero total)
-        const criticalDays = item.dias_para_nivel_critico ?? 0;
-        const agotarseDays = item.dias_para_agotarse ?? 0;
-
-        const depletionDate = new Date();
-        depletionDate.setDate(depletionDate.getDate() + Math.floor(agotarseDays));
-
-        const criticalDate = new Date();
-        criticalDate.setDate(criticalDate.getDate() + Math.floor(criticalDays));
-
-        const impactLevel = item.estado_forecast === "critico" ? "Muy Alto" : (item.estado_forecast === "atencion" ? "Alto" : "Medio");
+        const rawDays = item.dias_para_agotarse;
         
         return {
           id: item.id || Math.random().toString(),
@@ -129,24 +111,14 @@ export default function CareforecastPage() {
           category: item.categoria || "General",
           icon: getIconForCategory(item.nombre || ""),
           stock: item.stock_actual || 0,
-          nivel_critico: item.nivel_critico || 0,
           unit: item.unidad_medida || "uds",
-          consumptionPerDay: item.consumo_estimado || 0,
-          // Tiempo hasta zona crítica (=mismo que misiones)
-          timeLeft: formatCriticalTime(criticalDays),
-          timeLeftMinutes: criticalDays * 24 * 60,
-          // Tiempo hasta agotarse total (secundario, informativo)
-          depletionText: formatDepletionTime(agotarseDays),
-          criticalDays,
-          agotarseDays,
+          consumptionPerDay: item.consumo_diario_estimado || 0,
+          timeLeft: formatHumanTime(rawDays),
+          timeLeftMinutes: rawDays * 24 * 60,
           status: item.estado_forecast || "estable",
           unitsNeeded: Math.ceil(unitsNeeded),
           totalCost,
-          currentStockValue: item.stock_actual * cost,
-          depletionDate: depletionDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }),
-          criticalDate: criticalDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }),
-          impactLevel,
-          sede: item.sede || "cdmx"
+          currentStockValue: item.stock_actual * cost
         };
       });
 
@@ -272,146 +244,145 @@ export default function CareforecastPage() {
         </Card>
       </div>
 
-      {/* ───────────────── SECTION 2: INSUMOS EN TIEMPO REAL ───────────────── */}
+      {/* ───────────────── SECTION 2: TWO COLUMNS ───────────────── */}
       {!loading && supplies.length > 0 && (
-        <Card className="gap-0 border-2 shadow-sm">
-          <CardHeader className="pb-3 shrink-0 border-b border-slate-100">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+          {/* LEFT: Timeline de Riesgo */}
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="w-5 h-5 text-slate-400" />
-                  Insumos en Tiempo Real
-                </CardTitle>
-                <CardDescription style={{ fontSize: "0.8125rem" }}>
-                  Ordenado por urgencia de reabastecimiento · <span className="font-semibold text-slate-600">{supplies.length} insumos</span> monitoreados por IA
-                </CardDescription>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="hidden sm:flex items-center gap-3 text-xs text-slate-400">
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> Crítico</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> Atención</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" /> Estable</span>
-                </div>
-                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded-full border border-slate-200">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
-                  </span>
-                  <span className="text-slate-600" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>Live</span>
-                </div>
+                <h2 className="text-slate-900 flex items-center gap-2" style={{ fontSize: "1.125rem", fontWeight: 600 }}>
+                  <ShieldAlert className="w-5 h-5 text-red-500" />
+                  Timeline de Riesgo
+                </h2>
+                <p className="text-slate-500 mt-0.5" style={{ fontSize: "0.8125rem" }}>
+                  Insumos con agotamiento inminente que requieren acción
+                </p>
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="pt-4 pb-4">
-            <ScrollArea className="h-[440px] pr-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                {allSorted.map((supply) => {
-                  const SupplyIcon = supply.icon;
-                  const cfg = statusConfig[supply.status] || statusConfig.estable;
-                  const isCritical = supply.status === "critico";
-                  const isWarning = supply.status === "atencion";
-                  const isStable = !isCritical && !isWarning;
-                  // Stock progress: how much of the critical level is covered
-                  const stockRatio = supply.nivel_critico > 0
-                    ? Math.min(100, Math.round((supply.stock / supply.nivel_critico) * 100))
-                    : 100;
-                  const barColor = isCritical ? "bg-red-500" : isWarning ? "bg-amber-400" : "bg-emerald-400";
-                  const cardBg = isCritical
-                    ? "bg-gradient-to-br from-red-50 to-rose-50/40 border-red-200 hover:border-red-300"
-                    : isWarning
-                    ? "bg-gradient-to-br from-amber-50/60 to-orange-50/20 border-amber-200 hover:border-amber-300"
-                    : "bg-white border-slate-100 hover:border-slate-200";
 
-                  return (
-                    <div
-                      key={supply.id}
-                      className={cn("rounded-xl border p-3.5 transition-all duration-200 hover:shadow-md", cardBg)}
-                    >
-                      {/* Row 1: Icon + Name + Badge */}
-                      <div className="flex items-start justify-between gap-2 mb-2.5">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className={cn(
-                            "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                            isCritical ? "bg-red-100" : isWarning ? "bg-amber-100" : "bg-slate-100"
-                          )}>
-                            {isCritical
-                              ? <Flame className="w-4 h-4 text-red-500" />
-                              : isWarning
-                              ? <AlertTriangle className="w-4 h-4 text-amber-500" />
-                              : <SupplyIcon className="w-4 h-4 text-slate-500" />}
-                          </div>
-                          <div className="min-w-0">
-                            <p className={cn("font-semibold leading-tight truncate", isCritical ? "text-red-900" : "text-slate-800")} style={{ fontSize: "0.875rem" }}>
-                              {supply.name}
-                            </p>
-                            <p className="text-slate-400 truncate" style={{ fontSize: "0.625rem", fontWeight: 500 }}>
-                              {supply.category} · {supply.sede?.toUpperCase()}
-                            </p>
-                          </div>
-                        </div>
-                        <Badge
-                          className={cn("border-transparent text-white shadow-sm whitespace-nowrap shrink-0 text-[0.6rem] font-bold", cfg.badgeBg)}
-                        >
-                          {supply.timeLeft}
-                        </Badge>
-                      </div>
-
-                      {/* Row 2: Stock progress bar */}
-                      <div className="mb-2">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="text-slate-500 font-medium" style={{ fontSize: "0.6rem", letterSpacing: "0.03em" }}>
-                            STOCK vs NIVEL CRÍTICO
-                          </span>
-                          <span className={cn("font-bold", isCritical ? "text-red-600" : isWarning ? "text-amber-600" : "text-emerald-600")} style={{ fontSize: "0.6875rem" }}>
-                            {stockRatio}%
-                          </span>
-                        </div>
-                        <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                          <div
-                            className={cn("h-full rounded-full transition-all duration-700", barColor)}
-                            style={{ width: `${stockRatio}%` }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Row 3: Stats */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <div>
-                            <p className="text-slate-400" style={{ fontSize: "0.55rem", fontWeight: 600, textTransform: "uppercase" }}>Stock</p>
-                            <p className={cn("font-bold", isCritical ? "text-red-700" : "text-slate-700")} style={{ fontSize: "0.8125rem" }}>
-                              {supply.stock} <span className="text-slate-400 font-normal text-[0.6rem]">{supply.unit}</span>
-                            </p>
-                          </div>
-                          <div className="w-px h-6 bg-slate-200" />
-                          <div>
-                            <p className="text-slate-400" style={{ fontSize: "0.55rem", fontWeight: 600, textTransform: "uppercase" }}>Crít.</p>
-                            <p className="text-slate-500 font-semibold" style={{ fontSize: "0.8125rem" }}>
-                              {supply.nivel_critico} <span className="text-slate-400 font-normal text-[0.6rem]">{supply.unit}</span>
-                            </p>
-                          </div>
-                          <div className="w-px h-6 bg-slate-200" />
-                          <div>
-                            <p className="text-slate-400" style={{ fontSize: "0.55rem", fontWeight: 600, textTransform: "uppercase" }}>Ritmo</p>
-                            <p className="text-slate-600 font-semibold" style={{ fontSize: "0.8125rem" }}>
-                              {supply.consumptionPerDay?.toFixed(1)}<span className="text-slate-400 font-normal text-[0.6rem]">/d</span>
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-emerald-700 font-bold" style={{ fontSize: "0.8125rem" }}>
-                            {(supply.currentStockValue || 0).toLocaleString('es-MX')}
-                          </p>
-                          <p className="text-slate-400 font-semibold" style={{ fontSize: "0.55rem" }}>MXN</p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+            {criticalSupplies.length === 0 && (
+              <div className="p-8 text-center border-2 border-dashed border-emerald-200 rounded-xl bg-emerald-50 text-emerald-600">
+                ¡Excelente! No hay alertas críticas en el inventario por ahora.
               </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+            )}
+
+            {criticalSupplies.slice(0, 3).map((supply) => {
+              const SupplyIcon = supply.icon;
+              return (
+                <Card key={supply.id} className="gap-0 border-2 border-red-200 overflow-hidden relative shadow-sm hover:shadow-md transition-shadow">
+                  <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-red-600" />
+                  <CardContent className="p-4 pl-5">
+                    {/* NIVEL 1: ESTADO Y HEADLINE */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
+                          <SupplyIcon className="w-4 h-4 text-red-600" />
+                        </div>
+                        <div>
+                          <p className="text-slate-900 leading-tight" style={{ fontSize: "0.95rem", fontWeight: 700 }}>{supply.name}</p>
+                          <p className="text-slate-400" style={{ fontSize: "0.75rem" }}>{supply.category}</p>
+                        </div>
+                      </div>
+                      <Badge className="bg-red-600 hover:bg-red-700 text-white border-transparent shadow-sm px-1.5 py-0.5" style={{ fontSize: "0.65rem" }}>
+                        <Flame className="w-3 h-3 mr-1" />
+                        CRÍTICO
+                      </Badge>
+                    </div>
+
+                    {/* NIVEL 2: DECISIÓN (IMPACTO Y COSTO PRINCIPAL) */}
+                    <div className="bg-gradient-to-br from-red-50 to-rose-50/50 rounded-lg border border-red-100/60 p-3 text-center mb-3">
+                       <p className="text-red-700 font-extrabold text-lg tracking-tight mb-2 drop-shadow-sm">
+                          {supply.timeLeft}
+                       </p>
+                       <div className="flex flex-col gap-1.5 mt-1">
+                         <div className="flex justify-between items-center text-xs px-1">
+                           <span className="text-slate-500 font-medium tracking-wide">Cobertura requerida:</span>
+                           <span className="text-slate-900 font-bold bg-white px-2 py-0.5 rounded shadow-sm">{supply.unitsNeeded} {supply.unit}</span>
+                         </div>
+                         <div className="flex justify-between items-center text-xs px-1">
+                           <span className="text-slate-500 font-medium tracking-wide">Inversión est:</span>
+                           <span className="text-emerald-700 font-black bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded shadow-sm">
+                             {supply.totalCost.toLocaleString('es-MX')} MXN
+                           </span>
+                         </div>
+                       </div>
+                    </div>
+
+                    {/* NIVEL 3: DATOS TÉCNICOS VISUALMENTE MENORES */}
+                    <div className="flex justify-between items-center px-3 mb-1 rounded-md bg-slate-50 border border-slate-100 py-1.5">
+                        <p className="text-[0.65rem] uppercase text-slate-500 font-semibold tracking-wider">
+                          Stock: <span className="text-slate-800 font-bold">{supply.stock}</span> {supply.unit}
+                        </p>
+                        <div className="h-3 w-px bg-slate-200"></div>
+                        <p className="text-[0.65rem] uppercase text-slate-500 font-semibold tracking-wider">
+                          Ritmo: <span className="text-slate-800 font-bold">{supply.consumptionPerDay}</span> /día
+                        </p>
+                    </div>
+
+                    {/* NIVEL 4: ACCIÓN REMOVIDO A PETICIÓN DE USUARIO */}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* RIGHT: Real-Time Supply List */}
+          <div>
+            <Card className="gap-0 h-full flex flex-col border-2 shadow-sm">
+              <CardHeader className="pb-3 shrink-0 border-b border-slate-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Package className="w-5 h-5 text-slate-400" />
+                      Insumos en Tiempo Real
+                    </CardTitle>
+                    <CardDescription style={{ fontSize: "0.8125rem" }}>
+                      Ordenado por urgencia de reabastecimiento
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded-full border border-slate-200">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                    </span>
+                    <span className="text-slate-600" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>Live</span>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-3 flex-1 overflow-hidden">
+                <ScrollArea className="h-[550px] pr-4">
+                  <div className="space-y-2">
+                    {allSorted.map((supply) => {
+                      const SupplyIcon = supply.icon;
+                      const cfg = statusConfig[supply.status] || statusConfig.estable;
+                      const isCritical = supply.status === "critico";
+                      return (
+                        <div key={supply.id} className={cn("flex items-center gap-3 p-3 rounded-xl transition-colors border", isCritical ? "bg-red-50/70 border-red-100" : "bg-white border-slate-100 hover:bg-slate-50")}>
+                          <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", isCritical ? "bg-red-100" : "bg-amber-50")}>
+                            {isCritical ? <Flame className="w-4 h-4 text-red-500" /> : <AlertTriangle className="w-4 h-4 text-amber-500" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={cn("truncate", isCritical ? "text-red-800" : "text-slate-800")} style={{ fontSize: "0.875rem", fontWeight: 600 }}>{supply.name}</p>
+                            <p className="text-slate-500 truncate" style={{ fontSize: "0.6875rem" }}>{supply.category}</p>
+                          </div>
+                          <Badge className={cn("border-transparent text-white shrink-0 shadow-sm whitespace-nowrap px-2 px-x px-2", cfg.badgeBg)} style={{ fontSize: "0.6875rem", fontWeight: 700, minWidth: "4.5rem", justifyContent: "center" }}>
+                            {supply.timeLeft}
+                          </Badge>
+                          <div className="text-right shrink-0 min-w-[5rem]">
+                            <p className="text-emerald-700" style={{ fontSize: "0.8125rem", fontWeight: 700 }}>{(supply.currentStockValue || 0).toLocaleString('es-MX')}</p>
+                            <p className="text-slate-400" style={{ fontSize: "0.5625rem", fontWeight: 600 }}>MXN</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       )}
 
       {/* ───────────────── SECTION 3: FULL-WIDTH DATA TABLE ───────────────── */}
@@ -493,6 +464,7 @@ export default function CareforecastPage() {
 function SupplyTableRow({ supply }: { supply: any }) {
   const SupplyIcon = supply.icon;
   const cfg = statusConfig[supply.status] || statusConfig.estable;
+  const impact = impactConfig[supply.impactLevel] || "";
 
   return (
     <TableRow className={cn("border-b border-slate-100 transition-colors hover:bg-slate-50", supply.status === "critico" && "bg-red-50/20")}>
@@ -503,9 +475,7 @@ function SupplyTableRow({ supply }: { supply: any }) {
           </div>
           <div>
             <p className="text-slate-900" style={{ fontSize: "0.875rem", fontWeight: 600 }}>{supply.name}</p>
-            <p className="text-slate-400" style={{ fontSize: "0.6875rem", fontWeight: 500 }}>
-              {supply.category} · <span className="uppercase">{supply.sede}</span>
-            </p>
+            <p className="text-slate-500" style={{ fontSize: "0.6875rem", fontWeight: 500 }}>{supply.category}</p>
           </div>
         </div>
       </TableCell>
@@ -520,29 +490,21 @@ function SupplyTableRow({ supply }: { supply: any }) {
             ${(supply.currentStockValue || 0).toLocaleString('es-MX')} MXN
           </span>
           <span className="text-slate-400" style={{ fontSize: "0.6875rem", fontWeight: 500 }}>
-            {supply.stock} / crít. {supply.nivel_critico} {supply.unit}
+            {supply.stock} {supply.unit}
           </span>
         </div>
       </TableCell>
       <TableCell className="text-right">
-        <span className="text-slate-700" style={{ fontSize: "0.875rem", fontWeight: 600 }}>{supply.consumptionPerDay?.toFixed(2)}</span>
-        <span className="text-slate-400 ml-0.5" style={{ fontSize: "0.6875rem" }}>/{supply.unit || "ud"}</span>
+        <span className="text-slate-700" style={{ fontSize: "0.875rem", fontWeight: 600 }}>{supply.consumptionPerDay}</span>
+        <span className="text-slate-400 ml-0.5" style={{ fontSize: "0.6875rem" }}>/{supply.unit.replace("uds", "ud").replace("frascos", "fr").replace("latas", "lt")}</span>
       </TableCell>
-      {/* Tiempo crítico — MISMO que el donante ve en las misiones */}
       <TableCell className="text-center">
-        <div className="flex flex-col items-center gap-0.5">
-          <span className={cn("inline-flex items-center justify-center px-3 py-1 rounded-full text-white shadow-sm whitespace-nowrap", supply.status === "critico" ? "bg-red-600" : "bg-amber-500")} style={{ fontSize: "0.8125rem", fontWeight: 700, minWidth: "4.5rem" }}>
-            {supply.timeLeft}
-          </span>
-          <span className="text-slate-400 text-[0.6rem]">{supply.criticalDate}</span>
-        </div>
+        <span className={cn("inline-flex items-center justify-center px-3 py-1 rounded-full text-white shadow-sm whitespace-nowrap", supply.status === "critico" ? "bg-red-600" : "bg-amber-500")} style={{ fontSize: "0.8125rem", fontWeight: 700, minWidth: "4.5rem" }}>
+          {supply.timeLeft}
+        </span>
       </TableCell>
-      {/* Fecha agotamiento total */}
       <TableCell>
-        <div className="flex flex-col">
-          <span className="text-slate-600 font-medium" style={{ fontSize: "0.8125rem" }}>{supply.depletionDate}</span>
-          <span className="text-slate-400" style={{ fontSize: "0.65rem" }}>{supply.depletionText}</span>
-        </div>
+        <span className="text-slate-600 font-medium" style={{ fontSize: "0.8125rem" }}>{supply.depletionDate}</span>
       </TableCell>
       <TableCell className="text-center">
         <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold shadow-sm whitespace-nowrap" style={{ fontSize: "0.75rem" }}>

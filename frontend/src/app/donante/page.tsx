@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getImpactStories } from "@/services/api";
 import { motion } from "framer-motion"; // motion/react in the payload but usually framer-motion in nextjs
 import {
   Heart,
@@ -108,22 +107,10 @@ const fallbackDescriptions: Record<string, string> = {
   "Pañales": "Cada pañal es una caricia de dignidad para un bebé en tratamiento. Tu donación protege la piel más vulnerable.",
   "Kits": "Un kit de bienvenida que dice 'no estás solo'. Contiene artículos de higiene, cobijas y material de confort.",
   "Medicamentos": "Medicamentos pediátricos que alivian el dolor y aceleran la recuperación de los niños más valientes.",
-  "Alimentos": "Alimentos nutritivos que sostienen la energía de los niños y sus familias durante los días más difíciles.",
-  "Higiene": "Artículos esenciales de cuidado personal para familias que salieron de casa inesperadamente y necesitan mantenerse fuertes.",
-  "Médico": "Suministros médicos críticos para el cuidado continuo en el albergue pediátrico.",
-  "Logística": "Apoyo logístico que conecta a las familias con los recursos que necesitan urgentemente.",
-};
-
-// Imágenes de producto por categoría
-const categoryImages: Record<string, string> = {
-  "Higiene": "https://images.unsplash.com/photo-1623707430616-d9f956bcac2b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=640",
-  "Alimentos": "https://images.unsplash.com/photo-1601600576337-c1d8a0d1373c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=640",
-  "Médico": "https://images.unsplash.com/photo-1689580911770-c9305f6ac513?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=640",
-  "Logística": "https://images.unsplash.com/photo-1604599730009-fe273616197c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=640",
 };
 
 type MissionData = {
-  id: string;
+  id: number;
   title: string;
   urgency: "URGENCIA CRÍTICA" | "EN ATENCIÓN";
   badge: string;
@@ -131,19 +118,65 @@ type MissionData = {
   image: string;
   raised: number;
   goal: number;
-  daysLeft: number;    // dias_para_nivel_critico — mismo campo que Forecast admin
+  daysLeft: number;
   donors: number;
   sede: string;
-  categoria: string;
-  insumo_id: string;
-  faltante?: string;
 };
 
-const sedesMap: Record<string, string> = {
-  cdmx: "CDMX",
-  puebla: "Puebla",
-  edomex: "EdoMex",
-};
+const allMissions: MissionData[] = [
+  {
+    id: 1,
+    title: "Pañales Recién Nacido — Casa Puebla",
+    urgency: "URGENCIA CRÍTICA",
+    badge: "CAREFORECAST IA",
+    description: fallbackDescriptions["Pañales"],
+    image: "https://images.unsplash.com/photo-1623707430616-d9f956bcac2b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiYWJ5JTIwYm90dGxlJTIwaG9zcGl0YWwlMjBudXJzZXJ5JTIwbmV3Ym9ybnxlbnwxfHx8fDE3NzU2MzQ5NzV8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+    raised: 18500,
+    goal: 32000,
+    daysLeft: 6,
+    donors: 27,
+    sede: "Puebla",
+  },
+  {
+    id: 2,
+    title: "Kits de Admisión Hospitalaria — Casa Puebla",
+    urgency: "EN ATENCIÓN",
+    badge: "URGENTE",
+    description: fallbackDescriptions["Kits"],
+    image: "https://images.unsplash.com/photo-1658786335157-1fe6ff08c527?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaGlsZHJlbiUyMGhvc3BpdGFsJTIwZGlhcGVycyUyMHBlZGlhdHJpYyUyMGNhcmV8ZW58MXx8fHwxNzc1NjM0OTc2fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+    raised: 68000,
+    goal: 95000,
+    daysLeft: 12,
+    donors: 43,
+    sede: "Puebla",
+  },
+  {
+    id: 3,
+    title: "Medicamentos Pediátricos — Casa CDMX",
+    urgency: "URGENCIA CRÍTICA",
+    badge: "CAREFORECAST IA",
+    description: fallbackDescriptions["Medicamentos"],
+    image: "https://images.unsplash.com/photo-1689580911770-c9305f6ac513?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaGlsZCUyMG1lZGljYXRpb24lMjBwaGFybWFjeSUyMG1lZGljaW5lJTIwYm90dGxlc3xlbnwxfHx8fDE3NzU2MzQ5NzZ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+    raised: 41200,
+    goal: 58000,
+    daysLeft: 9,
+    donors: 55,
+    sede: "CDMX",
+  },
+  {
+    id: 4,
+    title: "Cobijas Térmicas — Casa Edo. de México",
+    urgency: "EN ATENCIÓN",
+    badge: "URGENTE",
+    description: "Cobijas que abrazan a cada familia durante las noches más frías en el hospital.",
+    image: "https://images.unsplash.com/photo-1604599730009-fe273616197c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzaWNrJTIwY2hpbGQlMjBob3NwaXRhbCUyMHN1cHBvcnQlMjBmYW1pbHklMjBjYXJlfGVufDF8fHx8MTc3NTYzNDQzMHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+    raised: 22000,
+    goal: 40000,
+    daysLeft: 15,
+    donors: 18,
+    sede: "EdoMex",
+  },
+];
 
 const sedes = [
   { key: "all", label: "Todas las Sedes" },
@@ -166,10 +199,9 @@ const donationHistory = [
    ═══════════════════════════════════════════ */
 
 function MissionCard({ m }: { m: MissionData }) {
-  const pct = m.goal > 0 ? Math.round((m.raised / m.goal) * 100) : 0;
+  const pct = Math.round((m.raised / m.goal) * 100);
   const remaining = m.goal - m.raised;
   const isUrgent = m.urgency === "URGENCIA CRÍTICA";
-  const daysText = m.daysLeft <= 0 ? "Zona crítica" : `${Math.round(m.daysLeft)} días`;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300">
@@ -191,11 +223,11 @@ function MissionCard({ m }: { m: MissionData }) {
           </span>
         </div>
 
-        {/* Right badge: Time -- uses SAME dias_para_nivel_critico as Forecast admin */}
+        {/* Right badge: Time */}
         <div className="absolute top-3 right-3">
           <span className="inline-flex items-center gap-1 bg-amber-500/20 backdrop-blur-sm text-amber-200 border border-amber-400/25 px-2.5 py-1 rounded-full" style={{ fontSize: "0.5625rem", fontWeight: 600 }}>
             <Clock className="w-3 h-3" />
-            {daysText}
+            {m.daysLeft} días
           </span>
         </div>
 
@@ -214,36 +246,42 @@ function MissionCard({ m }: { m: MissionData }) {
           {m.description}
         </p>
 
-        {/* Urgency Info — sustituye la barra de progreso por datos reales de insumo */}
-        <div className={`flex items-center justify-between text-xs px-3 py-2 rounded-lg ${isUrgent ? "bg-red-50 border border-red-100" : "bg-amber-50 border border-amber-100"}`}>
-          <div className="flex items-center gap-2">
-            <span className={`relative flex h-2 w-2`}>
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isUrgent ? "bg-red-400" : "bg-amber-400"}`} />
-              <span className={`relative inline-flex rounded-full h-2 w-2 ${isUrgent ? "bg-red-500" : "bg-amber-500"}`} />
-            </span>
-            <span className={`font-semibold ${isUrgent ? "text-red-600" : "text-amber-600"}`}>
-              {m.categoria.toUpperCase()}
+        {/* Progress */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-slate-600" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
+              {m.raised.toLocaleString('es-MX')} MXN <span className="text-slate-400" style={{ fontWeight: 400 }}>de</span> {m.goal.toLocaleString('es-MX')} MXN
             </span>
           </div>
-          <span className="text-slate-400 font-medium">{m.faltante} requeridas</span>
+          <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+            <div className="h-full rounded-full bg-gradient-to-r from-[#DA291C] to-[#FFBC0D] transition-all duration-700" style={{ width: `${pct}%` }} />
+          </div>
+          <div className="flex items-center justify-between mt-1.5">
+            <span className="text-slate-400" style={{ fontSize: "0.625rem", fontWeight: 500 }}>
+              {pct}% financiado
+            </span>
+            <span className="flex items-center gap-1 text-slate-400" style={{ fontSize: "0.625rem" }}>
+              <Users className="w-3 h-3" /> {m.donors} donaciones
+            </span>
+          </div>
         </div>
 
         {/* 3-column urgency metrics */}
         <div className={`grid grid-cols-3 gap-2 rounded-xl p-3 ${isUrgent ? "bg-red-50/60 border border-red-100" : "bg-amber-50/50 border border-amber-100"}`}>
           <div className="text-center">
             <Target className={`w-3.5 h-3.5 mx-auto mb-1 ${isUrgent ? "text-[#DA291C]" : "text-amber-500"}`} />
-            <p className="text-slate-400" style={{ fontSize: "0.5625rem", fontWeight: 500 }}>Necesarias</p>
-            <p className="text-slate-800 leading-tight" style={{ fontSize: "0.6875rem", fontWeight: 700 }}>{m.goal > 0 ? `${m.goal} uds` : "--"}</p>
+            <p className="text-slate-400" style={{ fontSize: "0.5625rem", fontWeight: 500 }}>Meta</p>
+            <p className="text-slate-800" style={{ fontSize: "0.75rem", fontWeight: 700 }}>{(m.goal / 1000).toFixed(0)}K</p>
           </div>
           <div className="text-center border-x border-slate-200/50">
             <Clock className={`w-3.5 h-3.5 mx-auto mb-1 ${isUrgent ? "text-[#DA291C]" : "text-amber-500"}`} />
             <p className="text-slate-400" style={{ fontSize: "0.5625rem", fontWeight: 500 }}>Restante</p>
-            <p className="text-slate-800" style={{ fontSize: "0.75rem", fontWeight: 700 }}>{daysText}</p>
+            <p className="text-slate-800" style={{ fontSize: "0.75rem", fontWeight: 700 }}>{m.daysLeft} días</p>
           </div>
           <div className="text-center">
             <Zap className={`w-3.5 h-3.5 mx-auto mb-1 ${isUrgent ? "text-[#DA291C]" : "text-amber-500"}`} />
             <p className="text-slate-400" style={{ fontSize: "0.5625rem", fontWeight: 500 }}>Falta</p>
-            <p className="text-slate-800" style={{ fontSize: "0.75rem", fontWeight: 700 }}>{m.faltante || "--"}</p>
+            <p className="text-slate-800" style={{ fontSize: "0.75rem", fontWeight: 700 }}>{(remaining / 1000).toFixed(1)}K</p>
           </div>
         </div>
 
@@ -265,51 +303,6 @@ function MissionCard({ m }: { m: MissionData }) {
 export default function DonorHomePage() {
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
   const [activeSede, setActiveSede] = useState("all");
-  const [allMissions, setAllMissions] = useState<MissionData[]>([]);
-  const [missionsLoading, setMissionsLoading] = useState(true);
-
-  useEffect(() => {
-    setMissionsLoading(true);
-    getImpactStories(30)
-      .then((stories: any[]) => {
-        const mapped: MissionData[] = stories.map((s) => {
-          // daysLeft = dias_para_nivel_critico, misma métrica que Forecast admin
-          const daysLeft = s.dias_restantes ?? 0;
-          const sedeKey = (s.casa || "").replace("Casa ", "").toLowerCase();
-          const sedeLabel = sedesMap[sedeKey] || sedeKey.toUpperCase();
-          const isUrgent = s.tipo_historia === "rescate_critico";
-          // Meta en MXN: meta_cantidad * costo_unitario no disponible aquí,
-          // usamos meta_cantidad como unidades y construimos la meta en texto
-          const metaUnidades = s.meta_cantidad || 0;
-          // goal en MXN aproximado: usamos 0 para no mostrar barra de progreso falsa
-          return {
-            id: s.id,
-            title: `${s.nombre_insumo} — ${s.casa || "McCare"}`,
-            urgency: isUrgent ? "URGENCIA CRÍTICA" : "EN ATENCIÓN",
-            badge: isUrgent ? "CAREFORECAST IA" : "PREVENCIÓN IA",
-            description:
-              s.historia ||
-              s.descripcion ||
-              fallbackDescriptions[s.categoria] ||
-              fallbackDescriptions["Higiene"],
-            image:
-              categoryImages[s.categoria] ||
-              categoryImages["Higiene"],
-            raised: 0,
-            goal: metaUnidades,       // Unidades requeridas
-            daysLeft,                 // dias_para_nivel_critico — MISMO que Forecast
-            donors: 0,
-            sede: sedeLabel,
-            categoria: s.categoria || "General",
-            insumo_id: s.insumo_id,
-            faltante: s.faltante || `${metaUnidades} uds`,
-          };
-        });
-        setAllMissions(mapped);
-      })
-      .catch(console.error)
-      .finally(() => setMissionsLoading(false));
-  }, []);
 
   const filteredMissions = activeSede === "all"
     ? allMissions
@@ -460,15 +453,11 @@ export default function DonorHomePage() {
 
             {/* Scrollable mission cards */}
             <div className="flex-1 overflow-y-auto space-y-4 pr-1" style={{ maxHeight: "600px" }}>
-              {missionsLoading ? (
-                <div className="flex items-center justify-center h-40 text-slate-400" style={{ fontSize: "0.8125rem" }}>
-                  <span className="animate-pulse">Cargando misiones en tiempo real...</span>
-                </div>
-              ) : filteredMissions.length > 0 ? (
+              {filteredMissions.length > 0 ? (
                 filteredMissions.map((m) => <MissionCard key={m.id} m={m} />)
               ) : (
                 <div className="flex items-center justify-center h-40 text-slate-400" style={{ fontSize: "0.8125rem" }}>
-                  No hay misiones activas en esta sede. ¡El inventario está sano!
+                  No hay misiones en esta sede actualmente.
                 </div>
               )}
             </div>

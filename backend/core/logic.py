@@ -15,14 +15,8 @@ def generar_misiones(insumos: List[Insumo]) -> List[MisionCritica]:
     misiones = []
     
     for insumo in insumos:
-        dias_restantes = float('inf')
-        if insumo.stock_actual <= 0:
-            dias_restantes = 0.0
-        elif insumo.consumo_diario > 0:
-            dias_restantes = insumo.stock_actual / insumo.consumo_diario
-            
-        # Condición de negocio: ¿Debe generarse una misión? (solo si días_restantes <= 7 o está bajo nivel crítico)
-        if dias_restantes <= 7 or insumo.stock_actual <= insumo.nivel_critico:
+        # Condición de negocio: ¿Debe generarse una misión?
+        if insumo.stock_actual <= insumo.nivel_critico:
             urgencia = calcular_urgencia(insumo.consumo_diario, insumo.stock_actual)
             
             # Formato de mensaje amigable de ejemplo: se estiman necesidades para 7 días

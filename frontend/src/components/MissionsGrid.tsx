@@ -92,6 +92,11 @@ export function MissionsGrid() {
       setMovCountMap(countMap)
 
       const mapeados = (insumosRaw as any[]).map((ins) => {
+        // ── Urgencia real ──
+        let urgency: "high" | "medium" | "low" = "low"
+        if (ins.stock_actual <= ins.nivel_critico) urgency = "high"
+        else if (ins.stock_actual <= ins.nivel_critico * 1.5) urgency = "medium"
+
         // ── Financiamiento en MXN reales ──
         const costoUnitario = ins.costo_unitario > 0 ? ins.costo_unitario : 85
         const raised        = Math.round(ins.stock_actual * costoUnitario)
@@ -102,17 +107,9 @@ export function MissionsGrid() {
         // ── Tiempo restante real ──
         const consumoDiario    = ins.consumo_diario > 0 ? ins.consumo_diario : 1
         const horasRestantes   = Math.max(1, Math.round((ins.stock_actual / consumoDiario) * 24))
-        const diasRestantes    = horasRestantes / 24
-        
         const timeLeft         = horasRestantes > 48
           ? `${Math.round(horasRestantes / 24)} días`
           : `${horasRestantes} horas`
-          
-        // ── Urgencia real sincronizada a 3-7 ──
-        let urgency: "high" | "medium" | "low" = "low"
-        if (diasRestantes <= 3 || ins.stock_actual <= ins.nivel_critico) urgency = "high"
-        else if (diasRestantes <= 7) urgency = "medium"
-        else urgency = "low"
 
         // ── Beneficiarios (3 uds/familia/semana) ──
         const familiasImpacto  = Math.max(1, Math.floor((consumoDiario * 7) / 3))
@@ -140,15 +137,7 @@ export function MissionsGrid() {
         return ord[a.urgency as keyof typeof ord] - ord[b.urgency as keyof typeof ord]
       })
 
-      // NUEVO: Ocultar misiones que superan los 7 días.
-      // Así se alinea con la lógica de "mostrar de 0 a 7 exclusivamente".
-      const filtrados = mapeados.filter(m => {
-        if (m.timeLeft.includes('horas')) return true
-        const dias = parseInt(m.timeLeft.split(' ')[0], 10)
-        return !isNaN(dias) && dias <= 7
-      })
-
-      setMisiones(filtrados)
+      setMisiones(mapeados)
     } catch (err) {
       console.error("Error cargando misiones:", err)
     } finally {
