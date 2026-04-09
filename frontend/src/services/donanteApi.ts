@@ -12,7 +12,7 @@ export const getHistorialDonaciones = (usuarioId: string, limit = 5) =>
 
 // Esta función es un wrapper sobre los insumos regulares si se deseaba separarla, o apunta a la general.
 export const getMisionesActivas = (sede?: string) => 
-  fetchJSON(`/api/insumos${sede ? `?sede=${sede}` : ''}`)
+  fetchJSON(`/api/misiones${sede ? `?sede=${sede}` : ''}`)
 
 export const getRecibosDonante = (usuarioId: string) => 
   fetchJSON(`/api/donantes/${usuarioId}/recibos`)

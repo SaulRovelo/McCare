@@ -12,6 +12,7 @@ import {
   LogOut,
   Bell
 } from "lucide-react"
+import { cn } from "@/lib/utils"
 import {
   Sidebar,
   SidebarContent,
@@ -54,38 +55,31 @@ export function DonanteSidebar() {
   return (
     <Sidebar className="border-r border-border/50">
       <SidebarHeader className="p-4">
-        <Link href="/" className="flex items-center gap-2.5 mb-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#DB0007]">
-            <Heart className="h-5 w-5 text-white fill-white" />
+        <Link href="/" className="flex items-center gap-3 mb-6 px-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-[#DA291C] to-[#DA291C]/80 shadow-lg shadow-red-500/20">
+            <Heart className="h-6 w-6 text-white fill-white animate-pulse" />
           </div>
           <div className="flex flex-col">
-            <span className="text-lg font-bold tracking-tight">McCare</span>
-            <span className="text-xs text-muted-foreground">Panel del Donante</span>
+            <span className="text-xl font-black tracking-tighter text-slate-900 leading-none">McCare</span>
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Donor Portal</span>
           </div>
         </Link>
         
         {/* User Profile Underneath Header */}
-        <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-border/50">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#DB0007] to-[#FFBC0D] flex items-center justify-center shrink-0 shadow-sm relative">
-            <span className="text-white text-sm font-bold">{userName.substring(0,2).toUpperCase()}</span>
-            {/* Pequeña campana de notificaciones superpuesta al perfil o a un lado */}
-            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#DB0007] border-2 border-white rounded-full flex items-center justify-center">
+        <div className="flex items-center gap-3 p-4 bg-slate-100/50 rounded-2xl border border-slate-200/50 transition-all hover:bg-slate-100 group cursor-default">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#1E293B] to-[#0F172A] flex items-center justify-center shrink-0 shadow-md relative group-hover:scale-105 transition-transform">
+            <span className="text-white text-sm font-black">{userName.substring(0,2).toUpperCase()}</span>
+            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full flex items-center justify-center shadow-sm">
             </span>
           </div>
           <div className="flex flex-col min-w-0 flex-1">
-            <p className="text-foreground text-[0.8125rem] font-bold leading-tight truncate">
+            <p className="text-slate-900 text-sm font-black leading-tight truncate">
               {userName}
             </p>
-            <p className="text-muted-foreground text-[0.65rem] font-medium leading-tight truncate">
-              Donante Individual
+            <p className="text-slate-500 text-[10px] font-bold leading-tight truncate uppercase tracking-tighter mt-0.5">
+              Héroe McCare
             </p>
           </div>
-          <button className="text-slate-400 hover:text-slate-600 transition-colors p-1">
-            <div className="relative">
-              <Bell className="w-[18px] h-[18px]" />
-              <span className="absolute top-0 right-0 w-1.5 h-1.5 bg-[#DB0007] rounded-full" />
-            </div>
-          </button>
         </div>
       </SidebarHeader>
 
@@ -97,13 +91,22 @@ export function DonanteSidebar() {
             Menú Principal
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-1">
               {menuPrincipal.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton asChild isActive={pathname === item.href} className="h-10">
-                    <Link href={item.href}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={pathname === item.href} 
+                    className={cn(
+                      "h-11 rounded-xl px-4 transition-all duration-200",
+                      pathname === item.href 
+                        ? "bg-[#DA291C] text-white shadow-lg shadow-red-500/20 hover:bg-[#DA291C] hover:text-white" 
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    )}
+                  >
+                    <Link href={item.href} className="flex items-center gap-3">
+                      <item.icon className={cn("h-5 w-5", pathname === item.href ? "text-white" : "text-slate-400")} />
+                      <span className="font-bold text-[13px]">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from database.models import InsumoSQL, MovimientoSQL
 from backend.models.domain import ForecastResult
+from backend.core.urgency import calcular_metricas_urgencia
 
 from river import compose
 from river import preprocessing
@@ -19,6 +20,16 @@ from river import tree
 # Estado y Variables Globales del Modelo (ML en Streaming persistente en memoria)
 _pipeline_ml = None
 _model_warm = False
+
+
+def reset_modelo():
+    """
+    Resetea el modelo River ML. Útil tras cambios masivos de stock (script demo).
+    El siguiente request a calcular_forecast re-entrenará en background thread.
+    """
+    global _pipeline_ml, _model_warm
+    _pipeline_ml = None
+    _model_warm = False
 
 def _iniciar_pipeline_River():
     """
@@ -56,22 +67,29 @@ def entrenar_transaccion_viva(movimiento: MovimientoSQL):
         _pipeline_ml.learn_one(x, y)
 
 def _calentar_modelo_desde_cero(db: Session):
-    """Simulation loop para cold-start iterando la BD viva una sola vez"""
+    """
+    Simulation loop para cold-start iterando la BD viva.
+    Limitado a las últimas 100 salidas para evitar timeout en demo/hackathon.
+    """
     global _model_warm
-    salidas_historicas = db.query(MovimientoSQL).filter(MovimientoSQL.tipo_movimiento == "salida").order_by(MovimientoSQL.fecha.asc()).all()
-    
+    salidas_historicas = (
+        db.query(MovimientoSQL)
+        .filter(MovimientoSQL.tipo_movimiento == "salida")
+        .order_by(MovimientoSQL.fecha.desc())
+        .limit(100)
+        .all()
+    )
     for mov in salidas_historicas:
         entrenar_transaccion_viva(mov)
-        
     _model_warm = True
 
 
 def calcular_forecast(db: Session, dias_historico: int = 30, sede: str = None) -> List[ForecastResult]:
     global _pipeline_ml, _model_warm
-    
+
     if _pipeline_ml is None:
         _iniciar_pipeline_River()
-        
+
     if not _model_warm:
         _calentar_modelo_desde_cero(db)
 
@@ -139,9 +157,11 @@ def calcular_forecast(db: Session, dias_historico: int = 30, sede: str = None) -
         stock = insumo.stock_actual
         nivel_critico = insumo.nivel_critico
 
-        # Lógica general (Conservando la semántica visual para UI)
-        dias_agotarse = max(0.0, round(stock / consumo_estimado, 1))
+        # Lógica centralizada de urgencia (la misma  para Misiones y Frontend)
+        metrics = calcular_metricas_urgencia(stock_actual=stock, consumo_estimado=consumo_estimado, nivel_critico=nivel_critico)
 
+        # Lógica de fallback para mensajes antiguos
+        dias_agotarse = metrics["dias_restantes"]
         if stock <= nivel_critico:
             dias_critico = 0.0
             estado = "critico"
@@ -173,6 +193,11 @@ def calcular_forecast(db: Session, dias_historico: int = 30, sede: str = None) -
             consumo_base=insumo.consumo_diario,
             consumo_estimado=round(consumo_estimado, 2),
             metodo_usado=metodo,
+            dias_restantes=metrics["dias_restantes"],
+            fecha_quiebre=metrics["fecha_quiebre"],
+            urgencia_label=metrics["urgencia_label"],
+            urgencia_nivel=metrics["urgencia_nivel"],
+            is_predicted=metrics["is_predicted"],
             dias_para_nivel_critico=dias_critico,
             dias_para_agotarse=dias_agotarse,
             estado_forecast=estado,

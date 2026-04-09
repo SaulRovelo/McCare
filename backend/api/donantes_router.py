@@ -5,6 +5,7 @@ Endpoints:
   GET   /api/donantes/{usuario_id}/perfil    — Datos de perfil y KPIs acumulados
   GET   /api/donantes/{usuario_id}/historial — Últimas N donaciones del usuario
   GET   /api/donantes/{usuario_id}/recibos   — Recibos fiscales del usuario
+  GET   /api/donantes/{usuario_id}/cuenta    — Datos de perfil y KPIs (GET agregado en RamaMax)
   PATCH /api/donantes/{usuario_id}/cuenta    — Actualizar nombre, RFC, empresa
   PATCH /api/donantes/{usuario_id}/cuenta/password — Cambio de contraseña
 """
@@ -139,26 +140,35 @@ def obtener_historial_donante(
     """
     _verificar_acceso(usuario_id, current_user)
 
-    donaciones = (
-        db.query(DonacionSQL)
-        .filter(DonacionSQL.usuario_id == usuario_id)
-        .order_by(DonacionSQL.fecha.desc())
-        .limit(limit)
-        .all()
-    )
+    try:
+        donaciones = (
+            db.query(DonacionSQL)
+            .filter(DonacionSQL.usuario_id == usuario_id)
+            .order_by(DonacionSQL.fecha.desc())
+            .limit(limit)
+            .all()
+        )
 
-    resultado = []
-    for d in donaciones:
-        resultado.append(HistorialItemOut(
-            id=d.id,
-            fecha=d.fecha,
-            monto_mxn=d.monto_mxn,
-            tipo=d.tipo,
-            observacion=d.observacion,
-            insumo_nombre=d.insumo.nombre if d.insumo else None,
-        ))
+        resultado = []
+        for d in donaciones:
+            # Forzar carga de relación si es necesario
+            insumo_nom = d.insumo.nombre if d.insumo else None
+            
+            resultado.append(HistorialItemOut(
+                id=str(d.id),
+                fecha=d.fecha,
+                monto_mxn=float(d.monto_mxn) if d.monto_mxn is not None else None,
+                tipo=str(d.tipo),
+                observacion=str(d.observacion) if d.observacion else None,
+                insumo_nombre=insumo_nom,
+            ))
 
-    return resultado
+        return resultado
+    except Exception as e:
+        print(f"ERROR en obtener_historial_donante: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ── GET /donantes/{usuario_id}/recibos ──────────────────────────────────────────

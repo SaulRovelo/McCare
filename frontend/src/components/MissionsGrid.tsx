@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react"
 import { Heart, Clock, Target, Users, Zap, ArrowRight, Flame, RefreshCw } from "lucide-react"
 import { DonationModal } from "@/components/DonationModal"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getInsumos, getMovimientosGlobales } from "@/services/api"
+import { getMisiones, getMovimientosGlobales } from "@/services/api"
 
 // ── Descripciones emocionales por categoría ─────────────────────────────────
 const fallbackDescriptions: Record<string, string> = {
@@ -77,8 +77,8 @@ export function MissionsGrid() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [insumosRaw, movimientos] = await Promise.all([
-        getInsumos(),
+      const [misionesRaw, movimientos] = await Promise.all([
+        getMisiones(),
         getMovimientosGlobales(100),
       ])
 
@@ -91,53 +91,56 @@ export function MissionsGrid() {
       }
       setMovCountMap(countMap)
 
-      const mapeados = (insumosRaw as any[]).map((ins) => {
-        // ── Urgencia real ──
+      const mapeados = (misionesRaw as any[]).map((m: any) => {
+        // ── Urgencia real dictaminada por backend ──
         let urgency: "high" | "medium" | "low" = "low"
-        if (ins.stock_actual <= ins.nivel_critico) urgency = "high"
-        else if (ins.stock_actual <= ins.nivel_critico * 1.5) urgency = "medium"
+        if (m.urgencia_nivel === "CRÍTICO") urgency = "high"
+        else if (m.urgencia_nivel === "ALTA" || m.urgencia_nivel === "ATENCIÓN") urgency = "medium"
 
         // ── Financiamiento en MXN reales ──
-        const costoUnitario = ins.costo_unitario > 0 ? ins.costo_unitario : 85
-        const raised        = Math.round(ins.stock_actual * costoUnitario)
-        const goalBruto     = Math.round(ins.capacidad_maxima * costoUnitario)
+        // (En el MisionCritica todavía no tenemos costo_unitario per se, podemos asumirlo base o pedirlo)
+        // Para ui simple:
+        const costoUnitario = 85
+        const raised        = Math.round(m.stock_actual * costoUnitario)
+        const goalBruto     = Math.round(m.capacidad_maxima * costoUnitario)
         const goal          = goalBruto > raised ? goalBruto : raised + Math.round(costoUnitario * 10)
         const percent       = Math.min(100, Math.round((raised / goal) * 100))
 
-        // ── Tiempo restante real ──
-        const consumoDiario    = ins.consumo_diario > 0 ? ins.consumo_diario : 1
-        const horasRestantes   = Math.max(1, Math.round((ins.stock_actual / consumoDiario) * 24))
-        const timeLeft         = horasRestantes > 48
-          ? `${Math.round(horasRestantes / 24)} días`
-          : `${horasRestantes} horas`
+        // ── Tiempo restante del modelo de IA ──
+        const timeLeft      = m.urgencia_label
 
         // ── Beneficiarios (3 uds/familia/semana) ──
-        const familiasImpacto  = Math.max(1, Math.floor((consumoDiario * 7) / 3))
+        const consumoDiario = m.consumo_diario || 1
+        const familiasImpacto = Math.max(1, Math.floor((consumoDiario * 7) / 3))
 
         return {
-          id:            ins.id,
-          title:         ins.nombre,
-          emotion:       fallbackDescriptions[ins.categoria] ?? "Tu ayuda transforma la incertidumbre en esperanza para nuestras familias.",
-          image:         itemImages[ins.nombre] ?? categoryImages[ins.categoria] ?? categoryImages.default,
+          id:            m.insumo_id, // Usar insumo_id para identificar la donación
+          title:         m.nombre_insumo,
+          emotion:       fallbackDescriptions[m.categoria] ?? "Tu ayuda transforma la incertidumbre en esperanza para nuestras familias.",
+          image:         itemImages[m.nombre_insumo] ?? categoryImages[m.categoria] ?? categoryImages.default,
           raised,
           goal,
           percent,
           timeLeft,
-          donors:        countMap[ins.id] ?? 0,       // movimientos de entrada reales
+          donors:        countMap[m.insumo_id] ?? 0,       // movimientos de entrada reales
           beneficiaries: `${familiasImpacto} familia${familiasImpacto !== 1 ? "s" : ""}`,
-          location:      ins.sede,
+          location:      m.sede,
           urgency,
-          raw: ins,                                   // dato bruto para el modal
+          raw: m,                                   // dato bruto para el modal
         }
       })
 
-      // Ordenar: críticos primero
-      mapeados.sort((a, b) => {
+      // FILTRO DEMO: Solo misiones críticas (0-3d) y de atención (4-7d)
+      // Las misiones estables (>7d) no aparecen para mantener foco visual
+      const misionesActivas = mapeados.filter(m => m.urgency !== "low")
+
+      // Ordenar: críticos primero, luego atención
+      misionesActivas.sort((a, b) => {
         const ord = { high: 0, medium: 1, low: 2 }
         return ord[a.urgency as keyof typeof ord] - ord[b.urgency as keyof typeof ord]
       })
 
-      setMisiones(mapeados)
+      setMisiones(misionesActivas)
     } catch (err) {
       console.error("Error cargando misiones:", err)
     } finally {
@@ -226,10 +229,13 @@ export function MissionsGrid() {
                   )}
 
                   {/* Misiones reales */}
-                  {!loading && misionesEnSede.map((mission) => (
+                  {!loading && misionesEnSede.map((mission) => {
+                    const isHigh = mission.urgency === "high"
+                    const borderColor = isHigh ? "hover:border-red-200" : "hover:border-amber-200"
+                    return (
                     <div
                       key={mission.id}
-                      className="group bg-white rounded-2xl overflow-hidden border border-slate-200 hover:border-red-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col"
+                      className={`group bg-white rounded-2xl overflow-hidden border border-slate-200 ${borderColor} shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col`}
                     >
                       {/* Imagen */}
                       <div className="relative h-56 sm:h-64 overflow-hidden bg-slate-100">
@@ -272,7 +278,7 @@ export function MissionsGrid() {
 
                         {/* Tiempo */}
                         <div className="absolute bottom-4 right-4 flex items-center gap-1.5 bg-slate-900/85 backdrop-blur-sm text-white px-3 py-1.5 rounded-full shadow-sm">
-                          <Clock className="w-3.5 h-3.5 text-amber-400" />
+                          <Clock className={`w-3.5 h-3.5 ${isHigh ? "text-red-400" : "text-amber-400"}`} />
                           <span style={{ fontSize: "0.75rem", fontWeight: 600 }}>{mission.timeLeft}</span>
                         </div>
                       </div>
@@ -315,10 +321,10 @@ export function MissionsGrid() {
                           </div>
                         </div>
 
-                        {/* Métricas de urgencia */}
-                        <div className="flex items-center gap-3 mt-5 p-3 bg-red-50/60 border border-red-100 rounded-xl">
+                        {/* Métricas de urgencia — color adaptado por nivel */}
+                        <div className={`flex items-center gap-3 mt-5 p-3 rounded-xl border ${isHigh ? "bg-red-50/60 border-red-100" : "bg-amber-50/60 border-amber-100"}`}>
                           <div className="flex-1 text-center">
-                            <div className="flex items-center justify-center gap-1 text-red-600 mb-0.5">
+                            <div className={`flex items-center justify-center gap-1 mb-0.5 ${isHigh ? "text-red-600" : "text-amber-600"}`}>
                               <Target className="w-3.5 h-3.5" />
                               <span style={{ fontSize: "0.6875rem", fontWeight: 500 }}>Meta</span>
                             </div>
@@ -326,9 +332,9 @@ export function MissionsGrid() {
                               ${mission.goal.toLocaleString()}
                             </span>
                           </div>
-                          <div className="w-px h-8 bg-red-200" />
+                          <div className={`w-px h-8 ${isHigh ? "bg-red-200" : "bg-amber-200"}`} />
                           <div className="flex-1 text-center">
-                            <div className="flex items-center justify-center gap-1 text-red-600 mb-0.5">
+                            <div className={`flex items-center justify-center gap-1 mb-0.5 ${isHigh ? "text-red-600" : "text-amber-600"}`}>
                               <Clock className="w-3.5 h-3.5" />
                               <span style={{ fontSize: "0.6875rem", fontWeight: 500 }}>Restante</span>
                             </div>
@@ -336,9 +342,9 @@ export function MissionsGrid() {
                               {mission.timeLeft}
                             </span>
                           </div>
-                          <div className="w-px h-8 bg-red-200" />
+                          <div className={`w-px h-8 ${isHigh ? "bg-red-200" : "bg-amber-200"}`} />
                           <div className="flex-1 text-center">
-                            <div className="flex items-center justify-center gap-1 text-red-600 mb-0.5">
+                            <div className={`flex items-center justify-center gap-1 mb-0.5 ${isHigh ? "text-red-600" : "text-amber-600"}`}>
                               <Zap className="w-3.5 h-3.5" />
                               <span style={{ fontSize: "0.6875rem", fontWeight: 500 }}>Falta</span>
                             </div>
@@ -348,10 +354,13 @@ export function MissionsGrid() {
                           </div>
                         </div>
 
-                        {/* CTA */}
+                        {/* CTA — color adaptado por urgencia */}
                         <button
                           onClick={() => { setMisionSeleccionada(mission); setModalAbierto(true) }}
-                          className="w-full mt-5 bg-[#DA291C] hover:bg-[#b8221a] text-white py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-lg shadow-red-600/20 hover:shadow-red-600/30"
+                          className={`w-full mt-5 text-white py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-lg
+                            ${isHigh
+                              ? "bg-[#DA291C] hover:bg-[#b8221a] shadow-red-600/20 hover:shadow-red-600/30"
+                              : "bg-amber-500 hover:bg-amber-600 shadow-amber-500/20 hover:shadow-amber-600/30"}`}
                           style={{ fontSize: "0.9375rem", fontWeight: 600 }}
                         >
                           <Heart className="w-4 h-4" />
@@ -360,14 +369,15 @@ export function MissionsGrid() {
                         </button>
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
 
                   {/* Empty state */}
                   {!loading && misionesEnSede.length === 0 && (
                     <div className="col-span-1 md:col-span-2 lg:col-span-3 py-16 text-center text-slate-500 bg-white rounded-2xl border border-slate-200 border-dashed">
                       <Heart className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                      <p className="font-medium">No hay misiones activas en la {sede.name}</p>
-                      <p className="text-sm mt-1">El inventario está en niveles seguros o aún se está cargando.</p>
+                      <p className="font-semibold text-slate-700">No hay insumos en urgencia en la {sede.name}</p>
+                      <p className="text-sm mt-1 text-slate-500">El inventario está en niveles seguros. El sistema vigila en tiempo real.</p>
                     </div>
                   )}
 

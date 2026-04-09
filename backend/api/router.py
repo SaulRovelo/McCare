@@ -22,8 +22,9 @@ from backend.models.domain import (
     SolicitudUrgenteOut,
 )
 from backend.storage import crud
-from backend.core import logic
 from analytics_ia.forecast import calcular_forecast
+from backend.core import logic
+from analytics_ia.forecast import calcular_forecast, reset_modelo
 from backend.services.impacto import compilar_historias
 from backend.services.metricas import obtener_resumen_admin, obtener_resumen_impacto
 from backend.services.corporativo import (
@@ -70,10 +71,9 @@ def agregar_nuevo_insumo(insumo_data: InsumoCreate, db: Session = Depends(get_db
 
 @api_router.get("/misiones", response_model=List[MisionCritica], tags=["Misiones"])
 def obtener_misiones(db: Session = Depends(get_db)):
-    """Evalúa el inventario actual y devuelve misiones críticas activas."""
-    insumos_db = crud.obtener_insumos(db)
-    insumos_pydantic = [Insumo.model_validate(i) for i in insumos_db]
-    return logic.generar_misiones(insumos_pydantic)
+    """Evalúa el inventario actual mediante la IA y devuelve misiones críticas activas."""
+    forecasts = calcular_forecast(db)
+    return logic.generar_misiones_desde_forecast(forecasts)
 
 
 # ── Auditoría ─────────────────────────────────────────────────────────────────
@@ -102,6 +102,16 @@ def listar_movimientos_por_insumo(insumo_id: str, db: Session = Depends(get_db))
 def obtener_forecast(limit: int = 20, sede: str = None, db: Session = Depends(get_db)):
     """Proyecciones de agotamiento por insumo (analytics_ia/forecast.py)."""
     return calcular_forecast(db, sede=sede)[:limit]
+
+
+@api_router.post("/forecast/reset", tags=["Analítica"])
+def resetear_modelo_ia():
+    """
+    Resetea el modelo River ML en memoria para que re-entrene en el próximo request.
+    Usar después de cambios masivos de stock (ej: script de demo).
+    """
+    reset_modelo()
+    return {"status": "ok", "mensaje": "Modelo River ML reiniciado. Re-entrenará en el próximo request de forecast."}
 
 
 # ── Admin ─────────────────────────────────────────────────────────────────────

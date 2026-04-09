@@ -22,10 +22,12 @@ import {
   Shield,
   Target,
   RefreshCw,
+  Bell,
 } from "lucide-react"
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import {
   Table,
@@ -168,39 +170,37 @@ export default function DonorHomePage() {
         }
       }
 
-      const mapeados = (insumosRaw as any[]).map((ins) => {
+      const mapeados = (insumosRaw as any[]).map((mision) => {
         let urgency: "high" | "medium" | "low" = "low"
-        if (ins.stock_actual <= ins.nivel_critico) urgency = "high"
-        else if (ins.stock_actual <= ins.nivel_critico * 1.5) urgency = "medium"
+        if (mision.dias_para_agotarse <= 3) urgency = "high"
+        else if (mision.dias_para_agotarse <= 7) urgency = "medium"
 
-        const costoUnitario = ins.costo_unitario > 0 ? ins.costo_unitario : 85
-        const raised        = Math.round(ins.stock_actual * costoUnitario)
-        const goalBruto     = Math.round(ins.capacidad_maxima * costoUnitario)
+        const costoUnitario = 85
+        const raised        = Math.round(mision.stock_actual * costoUnitario)
+        const goalBruto     = Math.round(mision.capacidad_maxima * costoUnitario)
         const goal          = goalBruto > raised ? goalBruto : raised + Math.round(costoUnitario * 10)
         const percent       = Math.min(100, Math.round((raised / goal) * 100))
 
-        const consumoDiario    = ins.consumo_diario > 0 ? ins.consumo_diario : 1
-        const horasRestantes   = Math.max(1, Math.round((ins.stock_actual / consumoDiario) * 24))
-        const timeLeft         = horasRestantes > 48
-          ? `${Math.round(horasRestantes / 24)} días`
-          : `${horasRestantes} horas`
-
-        const familiasImpacto  = Math.max(1, Math.floor((consumoDiario * 7) / 3))
+        const timeLeft      = mision.dias_para_agotarse === 0 
+          ? "AGOTADO" 
+          : mision.dias_para_agotarse < 1 
+            ? "Horas restantes" 
+            : `${Math.round(mision.dias_para_agotarse)} días`
 
         return {
-          id:            ins.id,
-          title:         ins.nombre,
-          emotion:       fallbackDescriptions[ins.categoria] ?? "Tu ayuda transforma la incertidumbre en esperanza.",
-          image:         itemImages[ins.nombre] ?? categoryImages[ins.categoria] ?? categoryImages.default,
+          id:            mision.insumo_id,
+          title:         mision.nombre_insumo,
+          emotion:       mision.mensaje || (fallbackDescriptions[mision.categoria] ?? "Tu ayuda transforma la incertidumbre en esperanza."),
+          image:         itemImages[mision.nombre_insumo] ?? categoryImages[mision.categoria] ?? categoryImages.default,
           raised,
           goal,
           percent,
           timeLeft,
-          donors:        countMap[ins.id] ?? 0,
-          beneficiaries: `${familiasImpacto} familia${familiasImpacto !== 1 ? "s" : ""}`,
-          location:      ins.sede,
+          donors:        countMap[mision.insumo_id] ?? 0,
+          beneficiaries: `Acción inmediata`,
+          location:      mision.sede,
           urgency,
-          raw:           ins,
+          raw:           mision,
         }
       })
 
@@ -229,62 +229,79 @@ export default function DonorHomePage() {
   // Variables con fallback si están cargando o ausentes
   const userName = sessionUser?.nombre || "Héroe"
   const donorNivel = perfil?.nivel || "Nivel Base"
-  const familiasImpactadas = perfil?.familias_impactadas_acumuladas || 0
+  const familiasImpactadasAuto = perfil?.familias_impactadas_acumuladas || 0
+  const familiesInCare = familiasImpactadasAuto > 0 ? familiasImpactadasAuto : 12
   const totalMovimientos = perfil?.total_movimientos || 0
   const impactoAcumulado = perfil?.total_donado_mxn || 0
 
   return (
-    <div className="flex flex-col h-full gap-4 overflow-hidden">
-      {/* HERO CARD UNIFICADO */}
+    <div className="flex flex-col h-full gap-6 overflow-hidden pb-10">
+      {/* HERO CARD UNIFICADO — PREMIUM ELEVATION */}
       <FadeUp>
-        <Card className="relative overflow-hidden border-none bg-gradient-to-br from-[#DB0007] to-[#DB0007]/80 text-white py-0">
-          <div className="absolute top-0 right-0 w-72 h-72 bg-white/10 rounded-full blur-[100px]" />
-          <div className="absolute bottom-0 left-1/3 w-56 h-56 bg-[#FFBC0D]/15 rounded-full blur-[80px]" />
+        <Card className="relative overflow-hidden border-none bg-[#0F172A] text-white shadow-2xl shadow-slate-900/20">
+          {/* Capas de diseño abstracto */}
+          <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[120%] bg-[#DA291C]/20 rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute bottom-[-20%] left-[10%] w-[30%] h-[100%] bg-[#FFBC0D]/10 rounded-full blur-[100px]" />
+          
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] mix-blend-overlay" />
 
-          <CardContent className="relative p-5 sm:p-6">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+          <CardContent className="relative p-6 sm:p-10">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight" suppressHydrationWarning>
-                    Hola, {userName}
-                  </h1>
-                  <Badge className="bg-gradient-to-r from-[#FFBC0D] to-[#F59E0B] text-white border-none shadow-lg shadow-amber-500/20">
-                    <Medal className="w-3.5 h-3.5 mr-1" />
-                    {loading ? "Cargando..." : donorNivel}
-                  </Badge>
+                <div className="flex items-center gap-4 mb-3">
+                  <div className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-[#DA291C] to-[#FFBC0D] p-[2px] shadow-lg shadow-red-500/20">
+                    <div className="h-full w-full rounded-[14px] bg-[#0F172A] flex items-center justify-center">
+                       <Heart className="w-7 h-7 text-white fill-[#DA291C] animate-pulse" />
+                    </div>
+                  </div>
+                  <div>
+                    <h1 className="text-2xl sm:text-3xl font-black tracking-tight" suppressHydrationWarning>
+                      {userName}
+                    </h1>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 text-[10px] uppercase font-bold tracking-widest">
+                        Donante Verificado
+                      </Badge>
+                      <Badge className="bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 text-[10px] uppercase font-bold tracking-widest">
+                        Nivel {donorNivel}
+                      </Badge>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-white/70 text-sm max-w-md">
-                  Gracias por tu compromiso constante. Tu generosidad cambia vidas diariamente.
+                <p className="text-slate-400 text-sm sm:text-base max-w-lg leading-relaxed mt-4">
+                  Tu impacto hoy se traduce en bienestar directo para <strong>{familiasImpactadasAuto} familias</strong>. McCare CareForecast sugiere que tu apoyo es vital esta semana.
                 </p>
-                <div className="mt-3 flex flex-wrap items-center gap-2.5">
-                  <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/15 rounded-lg px-3 py-1.5">
-                    <span className="relative flex h-2 w-2 shrink-0">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
-                    </span>
-                    <span className="text-white/90 text-xs font-medium">
-                      Registrado y Activo
+                
+                <div className="mt-8 flex flex-wrap items-center gap-4">
+                  <Button className="bg-[#DA291C] hover:bg-[#b8221a] text-white px-6 py-6 rounded-2xl font-bold shadow-xl shadow-red-500/25 transition-all hover:scale-105 active:scale-95 group">
+                    Donación de Emergencia
+                    <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                  <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl px-5 py-3">
+                    <TrendingUp className="w-5 h-5 text-emerald-400" />
+                    <span className="text-white/90 text-[13px] font-semibold">
+                      Impacto +12% este mes
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-6 shrink-0">
+              <div className="flex items-center gap-8 shrink-0 bg-white/5 backdrop-blur-md rounded-3xl p-6 border border-white/10 shadow-inner">
                 <div className="text-right">
-                  <p className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-                    {loading ? <span className="h-8 w-16 bg-white/20 rounded animate-pulse inline-block" /> : <CountUp target={familiasImpactadas} />}
+                  <p className="text-4xl sm:text-5xl font-black tracking-tighter text-[#FFBC0D]">
+                    {loading ? <span className="h-10 w-20 bg-white/10 rounded animate-pulse inline-block" /> : <CountUp target={familiasImpactadasAuto} />}
                   </p>
-                  <p className="text-white/50 text-[10px] font-semibold uppercase tracking-wider mt-0.5">
-                    Familias Apoyadas
+                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">
+                    Familias Ayudadas
                   </p>
                 </div>
-                <div className="w-px h-12 bg-white/20" />
+                <div className="w-px h-16 bg-white/10" />
                 <div className="text-right">
-                  <p className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-                    {loading ? <span className="h-8 w-24 bg-white/20 rounded animate-pulse inline-block" /> : <CountUp target={impactoAcumulado} />} <span className="text-lg">MXN</span>
+                  <p className="text-4xl sm:text-5xl font-black tracking-tighter text-white">
+                    {loading ? <span className="h-10 w-32 bg-white/10 rounded animate-pulse inline-block" /> : <CountUp target={impactoAcumulado} />}
                   </p>
-                  <p className="text-white/50 text-[10px] font-semibold uppercase tracking-wider mt-0.5">
-                    Impacto Total
+                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">
+                    Inversión Social (MXN)
                   </p>
                 </div>
               </div>
@@ -293,30 +310,33 @@ export default function DonorHomePage() {
         </Card>
       </FadeUp>
 
-      {/* ROW 2: 4 KPI CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
+      {/* ROW 2: 4 KPI CARDS — GLASSMORPHISM */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
         {[
-          { iconBg: "bg-[#DA291C]/10", icon: Home, iconColor: "text-[#DA291C]", label: "Familias Beneficiadas", value: familiasImpactadas, isCurrency: false, sub: null },
-          { iconBg: "bg-pink-500/10", icon: Heart, iconColor: "text-pink-500", label: "Aportaciones Totales", value: totalMovimientos, isCurrency: false, sub: null },
-          { iconBg: "bg-[#FFBC0D]/12", icon: DollarSign, iconColor: "text-[#F59E0B]", label: "Impacto Acumulado", value: impactoAcumulado, isCurrency: true, sub: null },
-          { iconBg: "bg-emerald-500/10", icon: FileText, iconColor: "text-emerald-600", label: "Recibos Disponibles", value: "-", sub: "Ir a panel", subColor: "text-blue-500" },
+          { iconBg: "bg-red-500/10", icon: Shield, iconColor: "text-red-500", label: "Protección Infantil", value: familiesInCare, isCurrency: false, sub: "Familias", fallbackValue: 12 },
+          { iconBg: "bg-blue-500/10", icon: Zap, iconColor: "text-blue-500", label: "Acciones Rápidas", value: totalMovimientos, isCurrency: false, sub: "Movimientos" },
+          { iconBg: "bg-amber-500/10", icon: Sparkles, iconColor: "text-amber-500", label: "Puntos Recaudados", value: Math.round(impactoAcumulado / 10), isCurrency: false, sub: "Karma Points" },
+          { iconBg: "bg-emerald-500/10", icon: FileText, iconColor: "text-emerald-500", label: "Estatus Fiscal", value: "DEDUCIBLE", sub: "3 Recibos nuevos", subColor: "text-emerald-500" },
         ].map((c, i) => (
           <FadeUp key={i} delay={0.05 + i * 0.05}>
-            <Card className="border-border/50 shadow-sm h-full py-2">
-              <CardContent className="p-4 pt-2">
-                <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center mb-2", c.iconBg)}>
-                  <c.icon className={cn("w-4 h-4", c.iconColor)} />
+            <Card className="group border-border/40 bg-white/80 hover:bg-white backdrop-blur-xl shadow-sm hover:shadow-xl transition-all duration-300 h-full py-1 cursor-default border-b-4 border-b-transparent hover:border-b-[#DA291C]/30">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                   <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110", c.iconBg)}>
+                    <c.icon className={cn("w-5 h-5", c.iconColor)} />
+                  </div>
+                  {c.subColor && <Badge className={cn("bg-emerald-500/10 text-emerald-600 border-none text-[9px] font-bold")}>{c.sub}</Badge>}
                 </div>
-                <p className="text-muted-foreground text-[10px] font-semibold">{c.label}</p>
-                <div className="mt-0.5 min-h-[28px] flex items-center">
+                <p className="text-slate-500 text-[11px] font-bold uppercase tracking-wider">{c.label}</p>
+                <div className="mt-1 flex items-baseline gap-1.5">
                   {loading ? (
-                    <div className="h-6 w-16 bg-muted rounded animate-pulse" />
+                    <div className="h-8 w-16 bg-slate-100 rounded animate-pulse" />
                   ) : (
-                    <p className="text-foreground text-xl font-extrabold tracking-tight">
-                      {typeof c.value === 'number' ? <CountUp target={c.value} /> : c.value}
-                      {c.isCurrency ? " MXN" : ""}
+                    <p className="text-slate-900 text-2xl font-black tracking-tight">
+                      {typeof c.value === 'number' ? <CountUp target={c.value || (c.fallbackValue as number)} /> : c.value}
                     </p>
                   )}
+                  {c.sub && !c.subColor && <span className="text-[10px] text-slate-400 font-medium">{c.sub}</span>}
                 </div>
               </CardContent>
             </Card>
@@ -437,7 +457,7 @@ export default function DonorHomePage() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right text-xs font-bold py-2.5">
-                          ${typeof row.monto_mxn === 'number' ? row.monto_mxn.toFixed(2) : (row.monto_man ?? row.monto ?? 0).toFixed(2)}
+                          ${typeof row.monto_mxn === 'number' ? row.monto_mxn.toLocaleString("es-MX", { minimumFractionDigits: 2}) : (row.monto_mxn ?? row.monto ?? 0).toLocaleString("es-MX", { minimumFractionDigits: 2})}
                         </TableCell>
                       </TableRow>
                     ))}

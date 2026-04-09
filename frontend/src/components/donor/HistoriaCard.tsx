@@ -18,14 +18,9 @@ export default function HistoriaCard({
   const [state, setState] = useState<'idle' | 'loading' | 'done'>('idle');
   const isCritico = story.tipo_historia === 'rescate_critico';
 
-  // Indicador de tiempo — conversión de unidades (presentación pura)
+  // Indicador de tiempo — ahora viene directo del backend para que haga match perfecto
   const diasRestantes: number = parseFloat(story.dias_restantes) || 0;
-  const tiempoLabel =
-    diasRestantes === 0         ? '⚠️ Agotado ahora' :
-    diasRestantes < 1           ? `⚡ Se agota en ~${Math.round(diasRestantes * 24)}h` :
-    diasRestantes < 2           ? `🔴 ${Math.round(diasRestantes * 24)}h restantes` :
-    diasRestantes < 7           ? `🟡 ${Math.round(diasRestantes)} días restantes` :
-                                  `🟢 ${Math.round(diasRestantes)} días restantes`;
+  const tiempoLabel = story.tiempo_texto || story.urgencia_label || 'Calculando...';
 
   // Barra: cobertura actual vs 14 días como referencia "saludable"
   const coberturaMax = 14;

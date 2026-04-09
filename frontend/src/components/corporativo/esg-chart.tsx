@@ -70,9 +70,9 @@ export function EsgChart() {
                       boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
                       fontSize: "13px",
                     }}
-                    formatter={(value: number, name: string) => [
+                    formatter={(value: any, name: any) => [
                       name === "donacion"
-                        ? `$${value.toLocaleString("es-MX")} MXN`
+                        ? `$${Number(value).toLocaleString("es-MX")} MXN`
                         : `${value} hrs`,
                       name === "donacion" ? "Donación" : "Voluntariado",
                     ]}

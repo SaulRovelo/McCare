@@ -24,7 +24,17 @@ class MisionCritica(BaseModel):
     id: UUID | str = Field(..., description="Identificador único de la misión")
     insumo_id: UUID | str = Field(..., description="Referencia al insumo que necesita reabastecerse")
     nombre_insumo: str = Field(..., description="Nombre amigable para la interfaz de donadores")
+    categoria: str = Field("otros", description="Categoría del insumo")
+    sede: str = Field("general", description="Sede donde se requiere el insumo")
     nivel_urgencia: float = Field(..., description="Ratio que indica qué tan crítico es (basado en consumo y stock)")
+    dias_restantes: float = Field(0.0, description="Días estimados para que el stock llegue a cero")
+    fecha_quiebre: str = Field(..., description="Fecha proyectada en que el inventario llegará a cero")
+    urgencia_label: str = Field(..., description="Etiqueta visual como 'Se agota hoy'")
+    urgencia_nivel: str = Field(..., description="Nivel de urgencia: CRÍTICO, ALTA, ESTABLE")
+    is_predicted: bool = Field(True, description="Indica si estos valores vienen de una proyección IA")
+    stock_actual: int = Field(0, description="Cantidad actual en inventario")
+    consumo_diario: float = Field(0.0, description="Consumo diario usado para esta estimación")
+    capacidad_maxima: int = Field(100, description="Capacidad máxima sugerida")
     mensaje: str = Field(..., description="Mensaje humano para los donadores y dashboard")
 
 class MovimientoCreate(BaseModel):
@@ -169,16 +179,22 @@ class ForecastResult(BaseModel):
     consumo_base: float
     consumo_estimado: float
     metodo_usado: str
+    dias_restantes: float
+    fecha_quiebre: str
+    urgencia_label: str
+    urgencia_nivel: str
+    is_predicted: bool = True
     dias_para_nivel_critico: float
-    dias_para_agotarse: float
+    dias_para_agotarse: float  # Legacy, mantenido por si algún otro componente lo reusa
     estado_forecast: Literal["estable", "atencion", "critico", "sin_datos"]
     confianza_basica: Literal["alta", "media", "baja"]
     mensaje_forecast: str
+    sede: str = "general"
     
     # Contexto Operativo Real (Familias)
     ocupacion_actual: Optional[int] = None
-    factor_ajuste: Optional[float] = None
     personas_en_sede: Optional[int] = None
+    factor_ajuste: Optional[float] = None
 
 class ImpactStory(BaseModel):
     """Historia Narrativa Oficial (B2C) dictaminada por la capa de Negocio."""
@@ -194,6 +210,10 @@ class ImpactStory(BaseModel):
     impacto_resumido: str
     tiempo_texto: str
     dias_restantes: float
+    fecha_quiebre: str = ""
+    urgencia_label: str = ""
+    urgencia_nivel: str = ""
+    is_predicted: bool = True
     accion_label: str
     accion_tipo: Literal["transaccional_fuerte", "transaccional_suave"]
     origen: Literal["operacion_actual", "forecast_predictivo"]

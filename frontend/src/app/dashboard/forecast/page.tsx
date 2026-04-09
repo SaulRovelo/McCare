@@ -42,12 +42,6 @@ import { getSessionUser } from "@/lib/auth";
    HELPERS & FORMATTING
    ═══════════════════════════════════════════════════ */
 
-function formatHumanTime(days: number) {
-  if (days <= 0.5) return "Se agota hoy";
-  if (days <= 1.5) return "Se agota mañana";
-  return `En ${Math.round(days)} días`;
-}
-
 /* ═══════════════════════════════════════════════════
    CONFIGURACIÓN VISUAL
    ═══════════════════════════════════════════════════ */
@@ -103,7 +97,7 @@ export default function CareforecastPage() {
         const maxCap = matchingInsumo.capacidad_maxima || 100;
         const unitsNeeded = maxCap > item.stock_actual ? (maxCap - item.stock_actual) : maxCap;
         const totalCost = unitsNeeded * cost;
-        const rawDays = item.dias_para_agotarse;
+        const rawDays = item.dias_restantes || 999;
         
         return {
           id: item.id || Math.random().toString(),
@@ -112,13 +106,14 @@ export default function CareforecastPage() {
           icon: getIconForCategory(item.nombre || ""),
           stock: item.stock_actual || 0,
           unit: item.unidad_medida || "uds",
-          consumptionPerDay: item.consumo_diario_estimado || 0,
-          timeLeft: formatHumanTime(rawDays),
+          consumptionPerDay: item.consumo_estimado || 0,
+          timeLeft: item.urgencia_label || "Estable",
           timeLeftMinutes: rawDays * 24 * 60,
           status: item.estado_forecast || "estable",
           unitsNeeded: Math.ceil(unitsNeeded),
           totalCost,
-          currentStockValue: item.stock_actual * cost
+          currentStockValue: item.stock_actual * cost,
+          depletionDate: item.fecha_quiebre || "N/A"
         };
       });
 
