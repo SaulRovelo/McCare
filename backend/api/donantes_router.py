@@ -203,6 +203,33 @@ def obtener_recibos_donante(
     return recibos
 
 
+# ── GET /donantes/{usuario_id}/cuenta ───────────────────────────────────────────
+
+@donantes_router.get("/{usuario_id}/cuenta")
+def obtener_cuenta_donante(
+    usuario_id: str,
+    db: Session = Depends(get_db),
+    current_user: UsuarioSQL = Depends(get_current_user),
+):
+    """
+    Retorna los datos editables de la cuenta del donante
+    (nombre, email, empresa_nombre, empresa_rfc).
+    """
+    _verificar_acceso(usuario_id, current_user)
+
+    usuario = db.query(UsuarioSQL).filter_by(id=usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+
+    perfil = usuario.perfil
+    return {
+        "nombre": usuario.nombre,
+        "email": usuario.email,
+        "empresa_nombre": perfil.empresa_nombre if perfil else None,
+        "empresa_rfc": perfil.empresa_rfc if perfil else None,
+    }
+
+
 # ── PATCH /donantes/{usuario_id}/cuenta ─────────────────────────────────────────
 
 @donantes_router.patch("/{usuario_id}/cuenta")
