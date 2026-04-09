@@ -124,6 +124,9 @@ const sedes = [
 export default function DonorHomePage() {
   const [activeSede, setActiveSede] = useState("all")
   
+  // Session user (client-only: avoids SSR hydration mismatch)
+  const [sessionUser, setSessionUser] = useState<ReturnType<typeof getSessionUser>>(null)
+
   // Real Data states
   const [perfil, setPerfil] = useState<any>(null)
   const [historial, setHistorial] = useState<any[]>([])
@@ -134,6 +137,11 @@ export default function DonorHomePage() {
   const [modalAbierto, setModalAbierto] = useState(false)
   const [misionSeleccionada, setMisionSeleccionada] = useState<any>(null)
 
+  // Populate session on client mount only
+  useEffect(() => {
+    setSessionUser(getSessionUser())
+  }, [])
+
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
@@ -141,15 +149,17 @@ export default function DonorHomePage() {
       if (!user) return
 
       // Cargar APIs concurrentes
+      // NOTA: historial retorna null en fallo (no []) para no borrar el optimistic update
       const [perfilData, historialData, insumosRaw, movimientos] = await Promise.all([
         getPerfilDonante(user.usuario_id).catch(() => null),
-        getHistorialDonaciones(user.usuario_id).catch(() => []),
+        getHistorialDonaciones(user.usuario_id).catch(() => null),
         getMisionesActivas(),
         getMovimientosGlobales(100),
       ])
 
       if (perfilData) setPerfil(perfilData)
-      if (historialData) setHistorial(Array.isArray(historialData) ? historialData : [])
+      // Solo pisar el historial si el backend devolvió datos reales
+      if (historialData !== null) setHistorial(Array.isArray(historialData) ? historialData : [])
 
       const countMap: Record<string, number> = {}
       for (const mov of movimientos) {
@@ -217,7 +227,7 @@ export default function DonorHomePage() {
       : misiones.filter((m) => m.location === activeSede)
 
   // Variables con fallback si están cargando o ausentes
-  const userName = getSessionUser()?.nombre || "Héroe"
+  const userName = sessionUser?.nombre || "Héroe"
   const donorNivel = perfil?.nivel || "Nivel Base"
   const familiasImpactadas = perfil?.familias_impactadas_acumuladas || 0
   const totalMovimientos = perfil?.total_movimientos || 0
@@ -235,7 +245,7 @@ export default function DonorHomePage() {
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight" suppressHydrationWarning>
                     Hola, {userName}
                   </h1>
                   <Badge className="bg-gradient-to-r from-[#FFBC0D] to-[#F59E0B] text-white border-none shadow-lg shadow-amber-500/20">
@@ -444,7 +454,21 @@ export default function DonorHomePage() {
         </FadeUp>
       </div>
       
-      <DonationModal open={modalAbierto} onOpenChange={(open) => { setModalAbierto(open); if(!open) fetchData(); }} mission={misionSeleccionada?.raw} />
+      <DonationModal
+        open={modalAbierto}
+        onOpenChange={(open) => {
+          setModalAbierto(open)
+          if (!open) {
+            setMisionSeleccionada(null) // Limpiar para evitar re-render con datos viejos
+            fetchData()
+          }
+        }}
+        mission={misionSeleccionada}
+        onDonationSuccess={(donacion) => {
+          // Optimistic update: agrega la donación al historial local de inmediato
+          setHistorial((prev) => [{ ...donacion, id: `local-${Date.now()}` }, ...prev])
+        }}
+      />
     </div>
   )
 }

@@ -13,6 +13,7 @@ from backend.api.auth_router import auth_router
 from database.connection import engine, Base
 
 from backend.api.familias_router import familias_router
+from backend.api.donantes_router import donantes_router
 
 # ── Importar todos los modelos para que create_all los registre ───────────────
 from database.models import (  # noqa: F401
@@ -52,6 +53,8 @@ app.add_middleware(
 app.include_router(api_router,      prefix="/api")
 app.include_router(auth_router,     prefix="/api")
 app.include_router(familias_router, prefix="/api")
+app.include_router(donantes_router, prefix="/api")
+
 
 
 
