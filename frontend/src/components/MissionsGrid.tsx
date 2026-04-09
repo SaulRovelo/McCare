@@ -180,7 +180,8 @@ export function MissionsGrid() {
 
           <button
             onClick={fetchData}
-            disabled={loading}
+            disabled={loading || undefined}
+            suppressHydrationWarning
             className="mt-6 inline-flex items-center gap-2 px-4 py-2 text-sm text-slate-600 border border-slate-200 bg-white rounded-xl hover:border-slate-300 transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
