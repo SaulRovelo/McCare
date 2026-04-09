@@ -79,6 +79,6 @@ export function getDashboardByRol(rol: string): string {
     case "admin":       return "/dashboard"
     case "corporativo": return "/corporativo"
     case "donante":
-    default:            return "/impacto"
+    default:            return "/donante"
   }
 }

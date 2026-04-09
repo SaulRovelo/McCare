@@ -43,7 +43,7 @@ export function Hero() {
           <span className="text-[#FFBC0D]">Cada segundo cuenta.</span>
         </h1>
         <p className="text-slate-300 mt-5 max-w-2xl mx-auto" style={{ fontSize: "1.125rem", lineHeight: 1.7 }}>
-          McCare conecta en tiempo real las necesidades más urgentes de la Casa de la Amistad Ronald McDonald con personas dispuestas a ayudar.
+          McCare conecta en tiempo real las necesidades más urgentes de las Casas Ronald McDonald con personas dispuestas a ayudar.
         </p>
 
         {/* Botones (Llamados a la acción) */}

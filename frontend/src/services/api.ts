@@ -8,7 +8,7 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
 /** Fetch con inyección automática del JWT si existe sesión activa */
-const fetchJSON = async (url: string, options?: RequestInit) => {
+export const fetchJSON = async (url: string, options?: RequestInit) => {
   // Importación dinámica para evitar errores en SSR
   let token: string | null = null;
   if (typeof window !== 'undefined') {

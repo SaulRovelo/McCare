@@ -48,6 +48,12 @@ interface DonationModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   mission: MissionForModal | null
+  onDonationSuccess?: (donacion: {
+    concepto: string
+    monto_mxn: number
+    fecha: string
+    tipo: string
+  }) => void
 }
 
 // ── Constantes ───────────────────────────────────────────────────────────────
@@ -62,7 +68,7 @@ const urgencyLabels: Record<string, { label: string; color: string; bg: string }
 
 // ── Componente ───────────────────────────────────────────────────────────────
 
-export function DonationModal({ open, onOpenChange, mission }: DonationModalProps) {
+export function DonationModal({ open, onOpenChange, mission, onDonationSuccess }: DonationModalProps) {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(250)
   const [customAmount, setCustomAmount] = useState("")
   const [isCustom, setIsCustom] = useState(false)
@@ -106,6 +112,14 @@ export function DonationModal({ open, onOpenChange, mission }: DonationModalProp
       })
 
       setDonated(true)
+
+      // Notificar al padre con los datos de la donación para el historial local
+      onDonationSuccess?.({
+        concepto: `Donación a ${mission.title}`,
+        monto_mxn: finalAmount,
+        fecha: new Date().toISOString(),
+        tipo: "donacion",
+      })
     } catch (err) {
       console.error("Error en donación:", err)
       alert("Hubo un error procesando la donación. Intenta de nuevo.")

@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion"; // motion/react in the payload but usually framer-motion in nextjs
+import { useState, useEffect, useCallback } from "react"
+import { motion } from "framer-motion"
 import {
   Heart,
   Star,
@@ -22,7 +22,25 @@ import {
   Shield,
   Target,
   RefreshCw,
-} from "lucide-react";
+} from "lucide-react"
+
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { cn } from "@/lib/utils"
+
+import { getPerfilDonante, getHistorialDonaciones, getMisionesActivas } from "@/services/donanteApi"
+import { getMovimientosGlobales } from "@/services/api"
+import { getSessionUser } from "@/lib/auth"
+import { DonationModal } from "@/components/DonationModal"
 
 /* ═══════════════════════════════════════════
    ANIMATION HELPERS
@@ -33,9 +51,9 @@ function FadeUp({
   delay = 0,
   className = "",
 }: {
-  children: React.ReactNode;
-  delay?: number;
-  className?: string;
+  children: React.ReactNode
+  delay?: number
+  className?: string
 }) {
   return (
     <motion.div
@@ -46,57 +64,24 @@ function FadeUp({
     >
       {children}
     </motion.div>
-  );
+  )
 }
 
 function CountUp({ target }: { target: number }) {
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useState(0)
   useEffect(() => {
-    let frame: number;
-    const dur = 1100;
-    const start = performance.now();
+    let frame: number
+    const dur = 1100
+    const start = performance.now()
     const run = (now: number) => {
-      const p = Math.min((now - start) / dur, 1);
-      setCount(Math.round(target * (1 - Math.pow(1 - p, 3))));
-      if (p < 1) frame = requestAnimationFrame(run);
-    };
-    frame = requestAnimationFrame(run);
-    return () => cancelAnimationFrame(frame);
-  }, [target]);
-  return <>{count.toLocaleString('es-MX')}</>;
-}
-
-/* ═══════════════════════════════════════════
-   DONUT CHART (pure SVG)
-   ═══════════════════════════════════════════ */
-
-const fundSegments = [
-  { label: "Salud", pct: 40, color: "#DA291C" },
-  { label: "Educación", pct: 30, color: "#FFBC0D" },
-  { label: "Remodelación", pct: 20, color: "#3B82F6" },
-  { label: "Operación", pct: 10, color: "#94A3B8" },
-];
-
-function DonutChart() {
-  const r = 42;
-  const c = 2 * Math.PI * r;
-  let off = 0;
-  return (
-    <svg viewBox="0 0 120 120" className="w-full h-full">
-      {fundSegments.map((s) => {
-        const d = (s.pct / 100) * c;
-        const o = off;
-        off += d;
-        return (
-          <circle key={s.label} cx="60" cy="60" r={r} fill="none" stroke={s.color} strokeWidth="14"
-            strokeDasharray={`${d} ${c - d}`} strokeDashoffset={-o} strokeLinecap="round"
-            style={{ transform: "rotate(-90deg)", transformOrigin: "center" }} />
-        );
-      })}
-      <text x="60" y="56" textAnchor="middle" fill="#1e293b" fontSize="14" fontWeight="800">100%</text>
-      <text x="60" y="70" textAnchor="middle" fill="#94a3b8" fontSize="7.5" fontWeight="500">Transparencia</text>
-    </svg>
-  );
+      const p = Math.min((now - start) / dur, 1)
+      setCount(Math.round(target * (1 - Math.pow(1 - p, 3))))
+      if (p < 1) frame = requestAnimationFrame(run)
+    }
+    frame = requestAnimationFrame(run)
+    return () => cancelAnimationFrame(frame)
+  }, [target])
+  return <>{count.toLocaleString("es-MX")}</>
 }
 
 /* ═══════════════════════════════════════════
@@ -104,556 +89,386 @@ function DonutChart() {
    ═══════════════════════════════════════════ */
 
 const fallbackDescriptions: Record<string, string> = {
-  "Pañales": "Cada pañal es una caricia de dignidad para un bebé en tratamiento. Tu donación protege la piel más vulnerable.",
-  "Kits": "Un kit de bienvenida que dice 'no estás solo'. Contiene artículos de higiene, cobijas y material de confort.",
-  "Medicamentos": "Medicamentos pediátricos que alivian el dolor y aceleran la recuperación de los niños más valientes.",
-};
-
-type MissionData = {
-  id: number;
-  title: string;
-  urgency: "URGENCIA CRÍTICA" | "EN ATENCIÓN";
-  badge: string;
-  description: string;
-  image: string;
-  raised: number;
-  goal: number;
-  daysLeft: number;
-  donors: number;
-  sede: string;
-};
-
-const allMissions: MissionData[] = [
-  {
-    id: 1,
-    title: "Pañales Recién Nacido — Casa Puebla",
-    urgency: "URGENCIA CRÍTICA",
-    badge: "CAREFORECAST IA",
-    description: fallbackDescriptions["Pañales"],
-    image: "https://images.unsplash.com/photo-1623707430616-d9f956bcac2b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiYWJ5JTIwYm90dGxlJTIwaG9zcGl0YWwlMjBudXJzZXJ5JTIwbmV3Ym9ybnxlbnwxfHx8fDE3NzU2MzQ5NzV8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    raised: 18500,
-    goal: 32000,
-    daysLeft: 6,
-    donors: 27,
-    sede: "Puebla",
-  },
-  {
-    id: 2,
-    title: "Kits de Admisión Hospitalaria — Casa Puebla",
-    urgency: "EN ATENCIÓN",
-    badge: "URGENTE",
-    description: fallbackDescriptions["Kits"],
-    image: "https://images.unsplash.com/photo-1658786335157-1fe6ff08c527?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaGlsZHJlbiUyMGhvc3BpdGFsJTIwZGlhcGVycyUyMHBlZGlhdHJpYyUyMGNhcmV8ZW58MXx8fHwxNzc1NjM0OTc2fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    raised: 68000,
-    goal: 95000,
-    daysLeft: 12,
-    donors: 43,
-    sede: "Puebla",
-  },
-  {
-    id: 3,
-    title: "Medicamentos Pediátricos — Casa CDMX",
-    urgency: "URGENCIA CRÍTICA",
-    badge: "CAREFORECAST IA",
-    description: fallbackDescriptions["Medicamentos"],
-    image: "https://images.unsplash.com/photo-1689580911770-c9305f6ac513?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaGlsZCUyMG1lZGljYXRpb24lMjBwaGFybWFjeSUyMG1lZGljaW5lJTIwYm90dGxlc3xlbnwxfHx8fDE3NzU2MzQ5NzZ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    raised: 41200,
-    goal: 58000,
-    daysLeft: 9,
-    donors: 55,
-    sede: "CDMX",
-  },
-  {
-    id: 4,
-    title: "Cobijas Térmicas — Casa Edo. de México",
-    urgency: "EN ATENCIÓN",
-    badge: "URGENTE",
-    description: "Cobijas que abrazan a cada familia durante las noches más frías en el hospital.",
-    image: "https://images.unsplash.com/photo-1604599730009-fe273616197c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzaWNrJTIwY2hpbGQlMjBob3NwaXRhbCUyMHN1cHBvcnQlMjBmYW1pbHklMjBjYXJlfGVufDF8fHx8MTc3NTYzNDQzMHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    raised: 22000,
-    goal: 40000,
-    daysLeft: 15,
-    donors: 18,
-    sede: "EdoMex",
-  },
-];
-
-const sedes = [
-  { key: "all", label: "Todas las Sedes" },
-  { key: "CDMX", label: "Casa CDMX" },
-  { key: "Puebla", label: "Casa Puebla" },
-  { key: "EdoMex", label: "Casa Edo. de México" },
-];
-
-const donationHistory = [
-  { id: 1, icon: DollarSign, category: "Mensual", date: "15 Abr 2026", mission: "Aportación Mensual General", amount: "500.00 MXN", impact: "5 familias" },
-  { id: 2, icon: Shield, category: "Médico", date: "08 Mar 2026", mission: "Kits de Admisión Hospitalaria", amount: "1,200.00 MXN", impact: "12 familias" },
-  { id: 3, icon: DollarSign, category: "Mensual", date: "15 Mar 2026", mission: "Aportación Mensual General", amount: "500.00 MXN", impact: "5 familias" },
-  { id: 4, icon: Home, category: "Infraestructura", date: "28 Ene 2026", mission: "Remodelación Cocina CDMX", amount: "2,500.00 MXN", impact: "50 familias" },
-  { id: 5, icon: DollarSign, category: "Mensual", date: "15 Feb 2026", mission: "Aportación Mensual General", amount: "500.00 MXN", impact: "5 familias" },
-  { id: 6, icon: DollarSign, category: "Mensual", date: "15 Ene 2026", mission: "Aportación Mensual General", amount: "500.00 MXN", impact: "5 familias" },
-];
-
-/* ═══════════════════════════════════════════
-   MISSION CARD COMPONENT
-   ═══════════════════════════════════════════ */
-
-function MissionCard({ m }: { m: MissionData }) {
-  const pct = Math.round((m.raised / m.goal) * 100);
-  const remaining = m.goal - m.raised;
-  const isUrgent = m.urgency === "URGENCIA CRÍTICA";
-
-  return (
-    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300">
-      {/* Image */}
-      <div className="relative h-44">
-        <img src={m.image} alt={m.title} className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-
-        {/* Left badge: Urgency */}
-        <div className="absolute top-3 left-3">
-          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full backdrop-blur-sm ${
-            isUrgent
-              ? "bg-[#DA291C]/25 border border-[#DA291C]/40 text-red-200"
-              : "bg-amber-500/20 border border-amber-400/30 text-amber-200"
-          }`} style={{ fontSize: "0.5625rem", fontWeight: 700, letterSpacing: "0.04em" }}>
-            {isUrgent && <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" /><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-300" /></span>}
-            {!isUrgent && <Flame className="w-2.5 h-2.5" />}
-            {m.urgency}
-          </span>
-        </div>
-
-        {/* Right badge: Time */}
-        <div className="absolute top-3 right-3">
-          <span className="inline-flex items-center gap-1 bg-amber-500/20 backdrop-blur-sm text-amber-200 border border-amber-400/25 px-2.5 py-1 rounded-full" style={{ fontSize: "0.5625rem", fontWeight: 600 }}>
-            <Clock className="w-3 h-3" />
-            {m.daysLeft} días
-          </span>
-        </div>
-
-        {/* Bottom over image */}
-        <div className="absolute bottom-0 left-0 right-0 p-4">
-          <h3 className="text-white" style={{ fontSize: "0.9375rem", fontWeight: 700, lineHeight: 1.3 }}>
-            {m.title}
-          </h3>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="p-4 space-y-3.5">
-        {/* Description */}
-        <p className="text-slate-500 line-clamp-2" style={{ fontSize: "0.75rem", lineHeight: 1.6 }}>
-          {m.description}
-        </p>
-
-        {/* Progress */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-slate-600" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
-              {m.raised.toLocaleString('es-MX')} MXN <span className="text-slate-400" style={{ fontWeight: 400 }}>de</span> {m.goal.toLocaleString('es-MX')} MXN
-            </span>
-          </div>
-          <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-            <div className="h-full rounded-full bg-gradient-to-r from-[#DA291C] to-[#FFBC0D] transition-all duration-700" style={{ width: `${pct}%` }} />
-          </div>
-          <div className="flex items-center justify-between mt-1.5">
-            <span className="text-slate-400" style={{ fontSize: "0.625rem", fontWeight: 500 }}>
-              {pct}% financiado
-            </span>
-            <span className="flex items-center gap-1 text-slate-400" style={{ fontSize: "0.625rem" }}>
-              <Users className="w-3 h-3" /> {m.donors} donaciones
-            </span>
-          </div>
-        </div>
-
-        {/* 3-column urgency metrics */}
-        <div className={`grid grid-cols-3 gap-2 rounded-xl p-3 ${isUrgent ? "bg-red-50/60 border border-red-100" : "bg-amber-50/50 border border-amber-100"}`}>
-          <div className="text-center">
-            <Target className={`w-3.5 h-3.5 mx-auto mb-1 ${isUrgent ? "text-[#DA291C]" : "text-amber-500"}`} />
-            <p className="text-slate-400" style={{ fontSize: "0.5625rem", fontWeight: 500 }}>Meta</p>
-            <p className="text-slate-800" style={{ fontSize: "0.75rem", fontWeight: 700 }}>{(m.goal / 1000).toFixed(0)}K</p>
-          </div>
-          <div className="text-center border-x border-slate-200/50">
-            <Clock className={`w-3.5 h-3.5 mx-auto mb-1 ${isUrgent ? "text-[#DA291C]" : "text-amber-500"}`} />
-            <p className="text-slate-400" style={{ fontSize: "0.5625rem", fontWeight: 500 }}>Restante</p>
-            <p className="text-slate-800" style={{ fontSize: "0.75rem", fontWeight: 700 }}>{m.daysLeft} días</p>
-          </div>
-          <div className="text-center">
-            <Zap className={`w-3.5 h-3.5 mx-auto mb-1 ${isUrgent ? "text-[#DA291C]" : "text-amber-500"}`} />
-            <p className="text-slate-400" style={{ fontSize: "0.5625rem", fontWeight: 500 }}>Falta</p>
-            <p className="text-slate-800" style={{ fontSize: "0.75rem", fontWeight: 700 }}>{(remaining / 1000).toFixed(1)}K</p>
-          </div>
-        </div>
-
-        {/* CTA */}
-        <button className="w-full bg-[#DA291C] hover:bg-[#b8221a] text-white py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm" style={{ fontSize: "0.8125rem", fontWeight: 600 }}>
-          <Heart className="w-4 h-4" />
-          Aportar a esta misión
-          <ArrowRight className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
-  );
+  "Alimentos":  "Garantiza la alimentación saludable de familias que necesitan estar cerca de sus hijos hospitalizados.",
+  "Higiene":    "Artículos esenciales de cuidado personal para familias que salieron de casa inesperadamente.",
+  "Médico":     "Medicamentos y suplementos que alivian el dolor y aceleran la recuperación.",
+  "Cuidado":    "Materiales de apoyo y confort para abrigar a los niños durante las noches.",
+  "Logística":  "Recursos operativos primordiales.",
+  "Otros":      "Insumos de soporte al día a día.",
 }
 
-/* ═══════════════════════════════════════════
-   MAIN COMPONENT
-   ═══════════════════════════════════════════ */
+const itemImages: Record<string, string> = {
+  "Fórmula Infantil L1":         "https://farmaciacoyoacan.com/cdn/shop/files/7501058623188_01.jpg?v=1723703269",
+  "Fórmula Láctea Etapa 1":      "https://www.movil.farmaciasguadalajara.com/wcsstore/FGCAS/wcs/products/1246763_A_1280_AL.jpg",
+  "Leche Entera 1L":             "https://cdn-bm.aktiosdigitalservices.com/tol/bm/media/product/img/700x700/A76411_00.jpg?t=20260128040006",
+  "Pañales RN":                  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQQgl1JNhPgPCtQ90vWPrfUEk1icRNb1QYonA&s",
+  "Pañales Etapa 3":             "https://www.costco.com.mx/medias/sys_master/products/h8a/h25/192116155940894.jpg",
+  "Paracetamol Gotas":           "https://www.movil.farmaciasguadalajara.com/wcsstore/FGCAS/wcs/products/1420976_A_1280_AL.jpg",
+}
+const categoryImages: Record<string, string> = {
+  "Alimentos":  "https://images.unsplash.com/photo-1639122654099-6e3017e70c21?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "Higiene":    "https://images.unsplash.com/photo-1584308666744-24d5e4a819b1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "Médico":     "https://images.unsplash.com/photo-1576089275776-b6cd5deabdad?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "Cuidado":    "https://images.unsplash.com/photo-1762922542177-689d5b007e61?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "Logística":  "https://images.unsplash.com/photo-1554498808-aaf30c4a22c8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "Otros":      "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "default":    "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+}
+
+const sedes = [
+  { key: "cdmx", label: "Casa CDMX" },
+  { key: "puebla", label: "Casa Puebla" },
+  { key: "edomex", label: "Casa Edo. de México" },
+]
 
 export default function DonorHomePage() {
-  const [hoveredRow, setHoveredRow] = useState<number | null>(null);
-  const [activeSede, setActiveSede] = useState("all");
+  const [activeSede, setActiveSede] = useState("all")
+  
+  // Session user (client-only: avoids SSR hydration mismatch)
+  const [sessionUser, setSessionUser] = useState<ReturnType<typeof getSessionUser>>(null)
 
-  const filteredMissions = activeSede === "all"
-    ? allMissions
-    : allMissions.filter((m) => m.sede === activeSede);
+  // Real Data states
+  const [perfil, setPerfil] = useState<any>(null)
+  const [historial, setHistorial] = useState<any[]>([])
+  const [misiones, setMisiones] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  
+  // Modal state
+  const [modalAbierto, setModalAbierto] = useState(false)
+  const [misionSeleccionada, setMisionSeleccionada] = useState<any>(null)
+
+  // Populate session on client mount only
+  useEffect(() => {
+    setSessionUser(getSessionUser())
+  }, [])
+
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const user = getSessionUser()
+      if (!user) return
+
+      // Cargar APIs concurrentes
+      // NOTA: historial retorna null en fallo (no []) para no borrar el optimistic update
+      const [perfilData, historialData, insumosRaw, movimientos] = await Promise.all([
+        getPerfilDonante(user.usuario_id).catch(() => null),
+        getHistorialDonaciones(user.usuario_id).catch(() => null),
+        getMisionesActivas(),
+        getMovimientosGlobales(100),
+      ])
+
+      if (perfilData) setPerfil(perfilData)
+      // Solo pisar el historial si el backend devolvió datos reales
+      if (historialData !== null) setHistorial(Array.isArray(historialData) ? historialData : [])
+
+      const countMap: Record<string, number> = {}
+      for (const mov of movimientos) {
+        if (mov.tipo_movimiento === "entrada") {
+          countMap[mov.insumo_id] = (countMap[mov.insumo_id] ?? 0) + 1
+        }
+      }
+
+      const mapeados = (insumosRaw as any[]).map((ins) => {
+        let urgency: "high" | "medium" | "low" = "low"
+        if (ins.stock_actual <= ins.nivel_critico) urgency = "high"
+        else if (ins.stock_actual <= ins.nivel_critico * 1.5) urgency = "medium"
+
+        const costoUnitario = ins.costo_unitario > 0 ? ins.costo_unitario : 85
+        const raised        = Math.round(ins.stock_actual * costoUnitario)
+        const goalBruto     = Math.round(ins.capacidad_maxima * costoUnitario)
+        const goal          = goalBruto > raised ? goalBruto : raised + Math.round(costoUnitario * 10)
+        const percent       = Math.min(100, Math.round((raised / goal) * 100))
+
+        const consumoDiario    = ins.consumo_diario > 0 ? ins.consumo_diario : 1
+        const horasRestantes   = Math.max(1, Math.round((ins.stock_actual / consumoDiario) * 24))
+        const timeLeft         = horasRestantes > 48
+          ? `${Math.round(horasRestantes / 24)} días`
+          : `${horasRestantes} horas`
+
+        const familiasImpacto  = Math.max(1, Math.floor((consumoDiario * 7) / 3))
+
+        return {
+          id:            ins.id,
+          title:         ins.nombre,
+          emotion:       fallbackDescriptions[ins.categoria] ?? "Tu ayuda transforma la incertidumbre en esperanza.",
+          image:         itemImages[ins.nombre] ?? categoryImages[ins.categoria] ?? categoryImages.default,
+          raised,
+          goal,
+          percent,
+          timeLeft,
+          donors:        countMap[ins.id] ?? 0,
+          beneficiaries: `${familiasImpacto} familia${familiasImpacto !== 1 ? "s" : ""}`,
+          location:      ins.sede,
+          urgency,
+          raw:           ins,
+        }
+      })
+
+      mapeados.sort((a, b) => {
+        const ord = { high: 0, medium: 1, low: 2 }
+        return ord[a.urgency as keyof typeof ord] - ord[b.urgency as keyof typeof ord]
+      })
+
+      setMisiones(mapeados)
+    } catch (err) {
+      console.error("Error cargando dashboard donante:", err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  const filteredMissions =
+    activeSede === "all"
+      ? misiones
+      : misiones.filter((m) => m.location === activeSede)
+
+  // Variables con fallback si están cargando o ausentes
+  const userName = sessionUser?.nombre || "Héroe"
+  const donorNivel = perfil?.nivel || "Nivel Base"
+  const familiasImpactadas = perfil?.familias_impactadas_acumuladas || 0
+  const totalMovimientos = perfil?.total_movimientos || 0
+  const impactoAcumulado = perfil?.total_donado_mxn || 0
 
   return (
-    <div className="w-full space-y-5">
-      {/* ══════════════════════════════════════
-          ROW 1: HERO BANNER
-          ══════════════════════════════════════ */}
+    <div className="flex flex-col h-full gap-4 overflow-hidden">
+      {/* HERO CARD UNIFICADO */}
       <FadeUp>
-        <div className="relative rounded-2xl overflow-hidden"
-          style={{ background: "linear-gradient(135deg, #1a1a2e 0%, #2d1520 40%, #4a1a1a 70%, #1a1a2e 100%)" }}>
-          <div className="absolute top-0 right-0 w-72 h-72 bg-[#DA291C]/10 rounded-full blur-[100px]" />
-          <div className="absolute bottom-0 left-1/3 w-56 h-56 bg-[#FFBC0D]/8 rounded-full blur-[80px]" />
+        <Card className="relative overflow-hidden border-none bg-gradient-to-br from-[#DB0007] to-[#DB0007]/80 text-white py-0">
+          <div className="absolute top-0 right-0 w-72 h-72 bg-white/10 rounded-full blur-[100px]" />
+          <div className="absolute bottom-0 left-1/3 w-56 h-56 bg-[#FFBC0D]/15 rounded-full blur-[80px]" />
 
-          <div className="relative px-6 py-6 sm:px-8 lg:px-10">
-            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
+          <CardContent className="relative p-5 sm:p-6">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
               <div className="flex-1 min-w-0">
-                <h1 className="text-white" style={{ fontSize: "clamp(1.25rem, 2.5vw, 1.75rem)", fontWeight: 700, lineHeight: 1.2, letterSpacing: "-0.02em" }}>
-                  ¡Hola, María Alejandra!
-                </h1>
-                <p className="text-white/50 mt-1 max-w-md" style={{ fontSize: "0.875rem", lineHeight: 1.5 }}>
-                  Gracias por ser el héroe de hoy. Tu generosidad cambia vidas.
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight" suppressHydrationWarning>
+                    Hola, {userName}
+                  </h1>
+                  <Badge className="bg-gradient-to-r from-[#FFBC0D] to-[#F59E0B] text-white border-none shadow-lg shadow-amber-500/20">
+                    <Medal className="w-3.5 h-3.5 mr-1" />
+                    {loading ? "Cargando..." : donorNivel}
+                  </Badge>
+                </div>
+                <p className="text-white/70 text-sm max-w-md">
+                  Gracias por tu compromiso constante. Tu generosidad cambia vidas diariamente.
                 </p>
-
-                <div className="mt-4 flex flex-wrap items-center gap-2.5">
-                  <div className="flex items-center gap-2 bg-white/8 backdrop-blur-sm border border-white/10 rounded-lg px-3 py-2">
+                <div className="mt-3 flex flex-wrap items-center gap-2.5">
+                  <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/15 rounded-lg px-3 py-1.5">
                     <span className="relative flex h-2 w-2 shrink-0">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
                     </span>
-                    <span className="text-white/80" style={{ fontSize: "0.75rem", fontWeight: 500 }}>
-                      Mensual Activa · <span className="text-white" style={{ fontWeight: 700 }}>500 MXN/mes</span>
+                    <span className="text-white/90 text-xs font-medium">
+                      Registrado y Activo
                     </span>
                   </div>
-                  <div className="flex items-center gap-1 text-white/35" style={{ fontSize: "0.6875rem" }}>
-                    <CalendarDays className="w-3 h-3" />
-                    <span>Próximo cobro: 15 Mayo 2026</span>
-                  </div>
-                  <button className="text-[#FFBC0D] hover:text-[#e5a90c] flex items-center gap-0.5 transition-colors cursor-pointer" style={{ fontSize: "0.75rem", fontWeight: 600 }}>
-                    Gestionar<ChevronRight className="w-3 h-3" />
-                  </button>
                 </div>
               </div>
 
-              <div className="flex gap-6 sm:gap-8 shrink-0 items-center">
+              <div className="flex items-center gap-6 shrink-0">
                 <div className="text-right">
-                  <p className="text-white" style={{ fontSize: "clamp(1.75rem, 4vw, 2.5rem)", fontWeight: 800, lineHeight: 1, letterSpacing: "-0.04em" }}>
-                    <CountUp target={220} />
+                  <p className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+                    {loading ? <span className="h-8 w-16 bg-white/20 rounded animate-pulse inline-block" /> : <CountUp target={familiasImpactadas} />}
                   </p>
-                  <p className="text-white/35 mt-1" style={{ fontSize: "0.625rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                  <p className="text-white/50 text-[10px] font-semibold uppercase tracking-wider mt-0.5">
                     Familias Apoyadas
                   </p>
                 </div>
-                <div className="w-px h-10 bg-white/10" />
+                <div className="w-px h-12 bg-white/20" />
                 <div className="text-right">
-                  <p className="text-white" style={{ fontSize: "clamp(1.75rem, 4vw, 2.5rem)", fontWeight: 800, lineHeight: 1, letterSpacing: "-0.04em" }}>
-                    <CountUp target={17500} /> <span className="text-xl">MXN</span>
+                  <p className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+                    {loading ? <span className="h-8 w-24 bg-white/20 rounded animate-pulse inline-block" /> : <CountUp target={impactoAcumulado} />} <span className="text-lg">MXN</span>
                   </p>
-                  <p className="text-white/35 mt-1" style={{ fontSize: "0.625rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                  <p className="text-white/50 text-[10px] font-semibold uppercase tracking-wider mt-0.5">
                     Impacto Total
                   </p>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </FadeUp>
 
-      {/* ══════════════════════════════════════
-          ROW 2: 4 KPI BENTO CARDS
-          ══════════════════════════════════════ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* ROW 2: 4 KPI CARDS */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
         {[
-          { bg: "from-red-50", border: "border-red-100/60", iconBg: "bg-[#DA291C]/10", icon: Home, iconColor: "text-[#DA291C]", label: "Familias Beneficiadas", value: <CountUp target={220} />, sub: "+12 este mes", subIcon: TrendingUp, subColor: "text-emerald-600", subIconColor: "text-emerald-500" },
-          { bg: "from-pink-50", border: "border-pink-100/60", iconBg: "bg-pink-500/10", icon: Heart, iconColor: "text-pink-500", label: "Aportaciones Totales", value: "8", sub: "Donante Leal", subIcon: Star, subColor: "text-pink-500", subIconColor: "text-pink-400" },
-          { bg: "from-amber-50", border: "border-amber-100/60", iconBg: "bg-[#FFBC0D]/12", icon: DollarSign, iconColor: "text-[#F59E0B]", label: "Impacto Acumulado", value: "17.5K MXN", sub: "Top 5% Global", subIcon: Sparkles, subColor: "text-amber-600", subIconColor: "text-[#F59E0B]" },
-          { bg: "from-emerald-50", border: "border-emerald-100/60", iconBg: "bg-emerald-500/10", icon: FileText, iconColor: "text-emerald-600", label: "Recibos Fiscales", value: "10", sub: null, subIcon: null, subColor: "", subIconColor: "" },
+          { iconBg: "bg-[#DA291C]/10", icon: Home, iconColor: "text-[#DA291C]", label: "Familias Beneficiadas", value: familiasImpactadas, isCurrency: false, sub: null },
+          { iconBg: "bg-pink-500/10", icon: Heart, iconColor: "text-pink-500", label: "Aportaciones Totales", value: totalMovimientos, isCurrency: false, sub: null },
+          { iconBg: "bg-[#FFBC0D]/12", icon: DollarSign, iconColor: "text-[#F59E0B]", label: "Impacto Acumulado", value: impactoAcumulado, isCurrency: true, sub: null },
+          { iconBg: "bg-emerald-500/10", icon: FileText, iconColor: "text-emerald-600", label: "Recibos Disponibles", value: "-", sub: "Ir a panel", subColor: "text-blue-500" },
         ].map((c, i) => (
           <FadeUp key={i} delay={0.05 + i * 0.05}>
-            <div className={`bg-gradient-to-br ${c.bg} to-white rounded-2xl ${c.border} p-4 hover:shadow-md transition-all duration-300 h-full`}>
-              <div className={`w-9 h-9 rounded-xl ${c.iconBg} flex items-center justify-center mb-3`}>
-                <c.icon className={`w-4.5 h-4.5 ${c.iconColor}`} />
-              </div>
-              <p className="text-slate-500" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>{c.label}</p>
-              <p className="text-slate-900 mt-0.5" style={{ fontSize: "1.75rem", fontWeight: 800, lineHeight: 1, letterSpacing: "-0.03em" }}>{c.value}</p>
-              {c.sub ? (
-                <div className="flex items-center gap-1 mt-2">
-                  {c.subIcon && <c.subIcon className={`w-3 h-3 ${c.subIconColor}`} />}
-                  <span className={c.subColor} style={{ fontSize: "0.625rem", fontWeight: 600 }}>{c.sub}</span>
+            <Card className="border-border/50 shadow-sm h-full py-2">
+              <CardContent className="p-4 pt-2">
+                <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center mb-2", c.iconBg)}>
+                  <c.icon className={cn("w-4 h-4", c.iconColor)} />
                 </div>
-              ) : (
-                <div className="flex items-center gap-2 mt-2.5">
-                  <button className="flex items-center gap-1 bg-white hover:bg-slate-50 text-slate-600 px-2 py-0.5 rounded-md transition-colors cursor-pointer border border-slate-200" style={{ fontSize: "0.5625rem", fontWeight: 700 }}>
-                    <Download className="w-2.5 h-2.5" /> XML
-                  </button>
-                  <button className="flex items-center gap-1 bg-[#DA291C]/8 hover:bg-[#DA291C]/15 text-[#DA291C] px-2 py-0.5 rounded-md transition-colors cursor-pointer border border-[#DA291C]/15" style={{ fontSize: "0.5625rem", fontWeight: 700 }}>
-                    <Download className="w-2.5 h-2.5" /> PDF
-                  </button>
+                <p className="text-muted-foreground text-[10px] font-semibold">{c.label}</p>
+                <div className="mt-0.5 min-h-[28px] flex items-center">
+                  {loading ? (
+                    <div className="h-6 w-16 bg-muted rounded animate-pulse" />
+                  ) : (
+                    <p className="text-foreground text-xl font-extrabold tracking-tight">
+                      {typeof c.value === 'number' ? <CountUp target={c.value} /> : c.value}
+                      {c.isCurrency ? " MXN" : ""}
+                    </p>
+                  )}
                 </div>
-              )}
-            </div>
+              </CardContent>
+            </Card>
           </FadeUp>
         ))}
       </div>
 
-      {/* ══════════════════════════════════════
-          ROW 3: Missions (Left 40%) + History (Right 60%)
-          ══════════════════════════════════════ */}
-      <div className="grid grid-cols-1 xl:grid-cols-10 gap-5">
-        {/* ── LEFT: Missions Grid (4/10 = 40%) ── */}
-        <FadeUp delay={0.25} className="xl:col-span-4">
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 h-full flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-1">
-              <h2 className="text-slate-900" style={{ fontSize: "1rem", fontWeight: 700, letterSpacing: "-0.01em" }}>
-                Misiones Críticas Activas
-              </h2>
-            </div>
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-slate-400" style={{ fontSize: "0.6875rem" }}>
-                Necesidades detectadas por CareforecastIA
-              </p>
-              <button className="flex items-center gap-1 text-slate-400 hover:text-[#DA291C] transition-colors cursor-pointer" style={{ fontSize: "0.625rem", fontWeight: 600 }}>
-                <RefreshCw className="w-3 h-3" />
-                Actualizar datos
-              </button>
-            </div>
+      {/* ROW 3: Missions (Real Cards) + History */}
+      <div className="grid grid-cols-1 xl:grid-cols-10 gap-4 flex-1 min-h-0">
+        <FadeUp delay={0.25} className="xl:col-span-6 min-h-0">
+          <Card className="border-border/50 shadow-sm h-full flex flex-col py-0">
+            <CardHeader className="pb-3 pt-4 shrink-0">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base">Misiones Críticas Activas</CardTitle>
+                  <CardDescription className="text-[11px] mt-0.5">Prioridades detectadas por CareforecastIA</CardDescription>
+                </div>
+                <Button variant="ghost" size="sm" onClick={fetchData} className="text-muted-foreground hover:text-[#DA291C] text-[10px] h-7">
+                  <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
+                  Actualizar
+                </Button>
+              </div>
 
-            {/* Tabs */}
-            <div className="flex items-center gap-1.5 mb-4 overflow-x-auto pb-1">
-              {sedes.map((s) => (
-                <button
-                  key={s.key}
-                  onClick={() => setActiveSede(s.key)}
-                  className={`shrink-0 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                    activeSede === s.key
-                      ? "bg-[#DA291C] text-white shadow-sm"
-                      : "bg-slate-50 text-slate-500 hover:bg-slate-100"
-                  }`}
-                  style={{ fontSize: "0.6875rem", fontWeight: 600 }}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
+              <div className="flex items-center gap-1.5 mt-3 overflow-x-auto pb-1">
+                <Button variant={activeSede === "all" ? "default" : "secondary"} size="sm" onClick={() => setActiveSede("all")} className={cn("h-7 text-[10px] font-semibold", activeSede === "all" && "bg-[#DA291C]")}>Todas</Button>
+                {sedes.map((s) => (
+                  <Button key={s.key} variant={activeSede === s.key ? "default" : "secondary"} size="sm" onClick={() => setActiveSede(s.key)} className={cn("h-7 text-[10px] font-semibold shrink-0", activeSede === s.key && "bg-[#DA291C]")}>{s.label}</Button>
+                ))}
+              </div>
+            </CardHeader>
 
-            {/* Scrollable mission cards */}
-            <div className="flex-1 overflow-y-auto space-y-4 pr-1" style={{ maxHeight: "600px" }}>
-              {filteredMissions.length > 0 ? (
-                filteredMissions.map((m) => <MissionCard key={m.id} m={m} />)
+            <CardContent className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
+              {loading ? (
+                <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
+                  Cargando misiones reales...
+                </div>
+              ) : filteredMissions.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {filteredMissions.map((mission) => (
+                    <div key={mission.id} className="group bg-white rounded-xl overflow-hidden border border-slate-200 hover:border-red-200 shadow-sm transition-all flex flex-col">
+                      <div className="relative h-36 bg-slate-100">
+                        <img src={mission.image} alt={mission.title} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                        
+                        {(mission.urgency === "high" || mission.urgency === "medium") && (
+                          <div className="absolute top-2 left-2">
+                            <Badge className={cn("text-[8px] px-1.5 py-0.5", mission.urgency === "high" ? "bg-red-600 text-white" : "bg-amber-500 text-white")}>
+                              {mission.urgency === "high" ? "URGENCIA CRÍTICA" : "EN ATENCIÓN"}
+                            </Badge>
+                          </div>
+                        )}
+                        <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-white/95 text-slate-800 px-2 py-0.5 rounded-full">
+                          <Heart className="w-2.5 h-2.5 text-[#DA291C] fill-[#DA291C]" />
+                          <span className="text-[9px] font-bold">{mission.beneficiaries}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="p-3 flex flex-col flex-1">
+                        <h3 className="text-slate-900 text-xs font-bold leading-tight line-clamp-1">{mission.title}</h3>
+                        <div className="mt-2 text-[10px]">
+                          <div className="flex justify-between mb-1">
+                            <span className="font-bold">${mission.raised.toLocaleString()} MXN</span>
+                            <span className="text-slate-400">de ${mission.goal.toLocaleString()}</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-red-500" style={{ width: `${mission.percent}%` }} />
+                          </div>
+                        </div>
+                        <button onClick={() => { setMisionSeleccionada(mission); setModalAbierto(true); }} className="w-full mt-3 bg-[#DA291C] text-white py-1.5 text-[10px] rounded-md font-bold hover:bg-[#b8221a] flex items-center justify-center gap-1">
+                          Aportar ahora <ArrowRight className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : (
-                <div className="flex items-center justify-center h-40 text-slate-400" style={{ fontSize: "0.8125rem" }}>
-                  No hay misiones en esta sede actualmente.
+                <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">No hay misiones actualmente.</div>
+              )}
+            </CardContent>
+          </Card>
+        </FadeUp>
+
+        {/* RIGHT: History */}
+        <FadeUp delay={0.3} className="xl:col-span-4 min-h-0">
+          <Card className="border-border/50 shadow-sm h-full flex flex-col py-0">
+            <CardHeader className="pb-3 pt-4 shrink-0 border-b">
+              <CardTitle className="text-base">Historial Reciente</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 overflow-auto p-0">
+              {loading ? (
+                <div className="flex flex-col gap-3 p-4">
+                  {[1,2,3].map((i) => (
+                    <div key={i} className="flex gap-2 p-2 items-center bg-slate-50/50 rounded-lg animate-pulse">
+                      <div className="w-8 h-8 rounded-full bg-slate-200" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 w-1/2 bg-slate-200 rounded" />
+                        <div className="h-2 w-1/4 bg-slate-200 rounded" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : historial.length > 0 ? (
+                <Table>
+                  <TableBody>
+                    {historial.map((row: any, i) => (
+                      <TableRow key={row.id || i}>
+                        <TableCell className="py-2.5">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded flex items-center justify-center bg-emerald-50 text-emerald-500">
+                              <Heart className="w-3 h-3" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold">{row.observacion || row.tipo || "Aportación"}</p>
+                              <p className="text-[9px] text-muted-foreground">
+                                {new Date(row.fecha).toLocaleDateString("es-MX", { day: '2-digit', month: 'short', year: 'numeric'})}
+                              </p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right text-xs font-bold py-2.5">
+                          ${typeof row.monto_mxn === 'number' ? row.monto_mxn.toFixed(2) : (row.monto_man ?? row.monto ?? 0).toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8 text-center text-sm">
+                  <Shield className="w-10 h-10 text-slate-200 mb-2" />
+                  <p>Aún no hay contribuciones en tu historial.</p>
                 </div>
               )}
-            </div>
-          </div>
-        </FadeUp>
-
-        {/* ── RIGHT: History + Fund Chart (6/10 = 60%) ── */}
-        <FadeUp delay={0.3} className="xl:col-span-6">
-          <div className="space-y-5 h-full flex flex-col">
-            {/* History Table */}
-            <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden flex-1 flex flex-col">
-              <div className="px-5 py-3.5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div>
-                  <h2 className="text-slate-900" style={{ fontSize: "0.9375rem", fontWeight: 700, letterSpacing: "-0.01em" }}>
-                    Historial de Contribuciones y Certificados
-                  </h2>
-                  <p className="text-slate-400 mt-0.5" style={{ fontSize: "0.6875rem" }}>
-                    Tus aportaciones son <span className="text-emerald-600" style={{ fontWeight: 600 }}>100% deducibles de impuestos</span>.
-                  </p>
-                </div>
-                <button className="bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer shrink-0" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
-                  <Download className="w-3.5 h-3.5" /> Descargar todo
-                </button>
-              </div>
-
-              <div className="overflow-x-auto flex-1">
-                <table className="w-full min-w-[560px]">
-                  <thead>
-                    <tr className="border-b border-slate-100">
-                      {[
-                        { label: "Insumo / Misión", align: "text-left" },
-                        { label: "Fecha", align: "text-left" },
-                        { label: "Monto", align: "text-right" },
-                        { label: "Impacto", align: "text-right" },
-                        { label: "Recibo Fiscal", align: "text-center" },
-                      ].map((h) => (
-                        <th key={h.label} className={`text-slate-400 px-4 py-2.5 ${h.align}`}
-                          style={{ fontSize: "0.5625rem", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>
-                          {h.label}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {donationHistory.map((row) => {
-                      const IconComp = row.icon;
-                      const catColors: Record<string, string> = {
-                        Mensual: "bg-blue-50 text-blue-500",
-                        Médico: "bg-red-50 text-[#DA291C]",
-                        Infraestructura: "bg-amber-50 text-amber-600",
-                      };
-                      return (
-                        <tr key={row.id}
-                          className={`border-b border-slate-50 transition-colors ${hoveredRow === row.id ? "bg-slate-50/60" : ""}`}
-                          onMouseEnter={() => setHoveredRow(row.id)}
-                          onMouseLeave={() => setHoveredRow(null)}>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2.5">
-                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${catColors[row.category] || "bg-slate-50 text-slate-500"}`}>
-                                <IconComp className="w-4 h-4" />
-                              </div>
-                              <div>
-                                <p className="text-slate-800" style={{ fontSize: "0.75rem", fontWeight: 600, lineHeight: 1.3 }}>{row.mission}</p>
-                                <p className="text-slate-400" style={{ fontSize: "0.5625rem", fontWeight: 500 }}>{row.category}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3"><span className="text-slate-500" style={{ fontSize: "0.75rem" }}>{row.date}</span></td>
-                          <td className="px-4 py-3 text-right">
-                            <span className="text-slate-900" style={{ fontSize: "0.75rem", fontWeight: 700 }}>{row.amount}</span>
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <span className="text-slate-500" style={{ fontSize: "0.6875rem", fontWeight: 500 }}>{row.impact}</span>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <button className="inline-flex items-center gap-1 bg-[#DA291C]/7 hover:bg-[#DA291C]/14 text-[#DA291C] px-2.5 py-1 rounded-md transition-colors cursor-pointer" style={{ fontSize: "0.5625rem", fontWeight: 700 }}>
-                              <Download className="w-2.5 h-2.5" /> PDF
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between">
-                <p className="text-slate-400" style={{ fontSize: "0.625rem" }}>Mostrando 6 de 10 contribuciones</p>
-                <button className="text-[#DA291C] hover:text-[#b8221a] flex items-center gap-1 transition-colors cursor-pointer" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
-                  Ver historial completo<ChevronRight className="w-3 h-3" />
-                </button>
-              </div>
-            </div>
-
-            {/* Fund Allocation + Recognition row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* Donut */}
-              <div className="bg-white rounded-2xl border border-slate-100 p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-slate-900" style={{ fontSize: "0.9375rem", fontWeight: 700, letterSpacing: "-0.01em" }}>
-                      Asignación de Fondos
-                    </h2>
-                    <p className="text-slate-400 mt-0.5" style={{ fontSize: "0.6875rem" }}>Transparencia total</p>
-                  </div>
-                  <span className="bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full" style={{ fontSize: "0.5625rem", fontWeight: 700 }}>
-                    Auditado 2025
-                  </span>
-                </div>
-                <div className="flex items-center gap-5">
-                  <div className="w-28 h-28 shrink-0"><DonutChart /></div>
-                  <div className="flex-1 space-y-2.5">
-                    {fundSegments.map((seg) => (
-                      <div key={seg.label}>
-                        <div className="flex items-center justify-between mb-0.5">
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: seg.color }} />
-                            <span className="text-slate-600" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>{seg.label}</span>
-                          </div>
-                          <span className="text-slate-500" style={{ fontSize: "0.6875rem", fontWeight: 700 }}>{seg.pct}%</span>
-                        </div>
-                        <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                          <div className="h-full rounded-full" style={{ width: `${seg.pct}%`, backgroundColor: seg.color }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Donor Recognition */}
-              <div className="bg-gradient-to-br from-[#1a1a2e] to-[#2d1520] rounded-2xl border border-white/5 p-5 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-28 h-28 bg-[#FFBC0D]/10 rounded-full blur-[50px]" />
-                <div className="absolute bottom-0 left-0 w-20 h-20 bg-[#DA291C]/10 rounded-full blur-[40px]" />
-                <div className="relative">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#FFBC0D] to-[#F59E0B] flex items-center justify-center shadow-lg shadow-[#FFBC0D]/20">
-                      <Medal className="w-5.5 h-5.5 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-white" style={{ fontSize: "0.9375rem", fontWeight: 800, letterSpacing: "-0.02em" }}>Nivel Oro</p>
-                      <p className="text-white/40" style={{ fontSize: "0.625rem", fontWeight: 500 }}>Reconocimiento McCare 2026</p>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    {[
-                      { label: "Donaciones consecutivas", value: "8 meses", icon: Star },
-                      { label: "Misiones completadas", value: "3 de 5", icon: Flame },
-                    ].map((item) => (
-                      <div key={item.label} className="flex items-center justify-between bg-white/6 rounded-lg px-3 py-2">
-                        <div className="flex items-center gap-1.5">
-                          <item.icon className="w-3 h-3 text-[#FFBC0D]" />
-                          <span className="text-white/55" style={{ fontSize: "0.625rem", fontWeight: 500 }}>{item.label}</span>
-                        </div>
-                        <span className="text-white" style={{ fontSize: "0.6875rem", fontWeight: 700 }}>{item.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-white/35" style={{ fontSize: "0.5625rem" }}>Progreso a Platino</span>
-                      <span className="text-[#FFBC0D]" style={{ fontSize: "0.625rem", fontWeight: 700 }}>72%</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
-                      <div className="h-full rounded-full bg-gradient-to-r from-[#FFBC0D] to-[#F59E0B]" style={{ width: "72%" }} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </FadeUp>
       </div>
-
-      {/* ══════════════════════════════════════
-          FOOTER
-          ══════════════════════════════════════ */}
-      <FadeUp delay={0.4}>
-        <div className="bg-white rounded-2xl border border-slate-100 px-6 py-4 mt-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Heart className="w-4 h-4 text-[#DA291C] fill-[#DA291C]" />
-              <span className="text-slate-500" style={{ fontSize: "0.75rem", fontWeight: 500 }}>
-                McCare · Fundación Infantil Ronald McDonald · <span className="text-slate-400">Todos los derechos reservados 2026</span>
-              </span>
-            </div>
-            <div className="flex items-center gap-4">
-              {["Aviso de Privacidad", "Términos", "Contacto"].map((link) => (
-                <button key={link} className="text-slate-400 hover:text-[#DA291C] transition-colors cursor-pointer" style={{ fontSize: "0.6875rem", fontWeight: 500 }}>
-                  {link}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </FadeUp>
+      
+      <DonationModal
+        open={modalAbierto}
+        onOpenChange={(open) => {
+          setModalAbierto(open)
+          if (!open) {
+            setMisionSeleccionada(null) // Limpiar para evitar re-render con datos viejos
+            fetchData()
+          }
+        }}
+        mission={misionSeleccionada}
+        onDonationSuccess={(donacion) => {
+          // Optimistic update: agrega la donación al historial local de inmediato
+          setHistorial((prev) => [{ ...donacion, id: `local-${Date.now()}` }, ...prev])
+        }}
+      />
     </div>
-  );
+  )
 }
