@@ -104,7 +104,7 @@ export function DonationModal({ open, onOpenChange, mission, onDonationSuccess }
       const cantidad = Math.max(1, Math.floor(finalAmount / costoUnitario))
 
       await postMovimiento({
-        insumo_id: raw.id,
+        insumo_id: mission.id,
         tipo_movimiento: "entrada",
         cantidad,
         observacion: `Donación pública $${finalAmount} MXN — ${unidadesCubiertas} uds (${diasCubiertos} días)`,

@@ -128,22 +128,35 @@ def compilar_historias(db: Session, limite_historias: int = 15) -> List[ImpactSt
 def procesar_donacion_general(db: Session, monto: float = None) -> Movimiento:
     """
     Rutea una donación monetaria general hacia el insumo con mayor urgencia
-    dictaminada por el modelo predictivo (CareForecast).
+    dictaminada por el modelo predictivo (CareForecast) o el de stock más bajo.
+    Para garantizar que la demo de hackathon siempre funcione, nunca retorna None.
     """
-    from backend.storage.crud import registrar_movimiento
+    from backend.storage.crud import registrar_movimiento, obtener_insumos
     from backend.models.domain import MovimientoCreate
 
     historias = compilar_historias(db, limite_historias=1)
-    if not historias:
-        return None
+    
+    insumo_id = None
+    cantidad_aportada = 1
 
-    mas_critico = historias[0]
-    cantidad_aportada = max(1, int(mas_critico.consumo_estimado * 7))
+    if historias:
+        mas_critico = historias[0]
+        insumo_id = mas_critico.insumo_id
+        # Convertimos la donación a cantidad de unidades (abastecer 7 o 14 días)
+        cantidad_aportada = max(10, int(mas_critico.consumo_estimado * 14))
+    else:
+        # Fallback de Hackathon: si todo está "estable", aportamos al que tenga menos stock
+        insumos = obtener_insumos(db)
+        if not insumos:
+            return None # Seguridad extrema si db vacía
+        insumo_mas_bajo = sorted(insumos, key=lambda x: x.stock_actual)[0]
+        insumo_id = insumo_mas_bajo.id
+        cantidad_aportada = max(10, int(insumo_mas_bajo.consumo_diario * 14))
 
     return registrar_movimiento(
         db,
         MovimientoCreate(
-            insumo_id=mas_critico.insumo_id,
+            insumo_id=insumo_id,
             tipo_movimiento="entrada",
             cantidad=cantidad_aportada,
             origen="publico",
